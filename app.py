@@ -1,6 +1,5 @@
 import streamlit as st
 
-import _sim
 import inventory_assets
 import loss_high
 import risk_calculation

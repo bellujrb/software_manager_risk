@@ -5,7 +5,6 @@ import pandas as pd
 def run():
     st.title('Inventário de Assets')
 
-    # Inicialização de sessão para armazenar os dados temporariamente
     if 'data' not in st.session_state:
         st.session_state.data = pd.DataFrame(columns=[
             'ID', 'Nome', 'Descrição', 'Local', 'Responsável', 'Valor para o negócio',
