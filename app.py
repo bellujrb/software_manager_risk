@@ -1,7 +1,9 @@
 import streamlit as st
 
+import control_library
 import inventory_assets
 import loss_high
+import relevance
 import risk_calculation
 import link_threat
 import inventory_threat
@@ -21,7 +23,7 @@ def main():
     Utilize a barra lateral para navegar entre as diferentes funcionalidades do aplicativo.
     """)
 
-    PAGES = {
+    PAGES_QIRA = {
         "Inventário de Assets": inventory_assets,
         "Threat Event Catalogue": inventory_threat,
         "Frequency": frequency,
@@ -29,9 +31,25 @@ def main():
         "Loss-High": loss_high,
         "Risk Calculation": risk_calculation,
         "Risk Analysis": risk_analysis,
+        "Control Library": control_library,
+        "Relevance": relevance
     }
+
+    PAGES_IRAM = {
+        "Em desenvolvimento": inventory_assets,
+    }
+
     st.sidebar.title('Navegação')
-    selection = st.sidebar.radio("Ir para", list(PAGES.keys()))
+
+    database_selection = st.sidebar.radio("Selecione a metodologia", ["ISF QIRA", "IRAM2"],
+                                          key='database')
+
+    if database_selection == "ISF QIRA":
+        pages = PAGES_QIRA
+    else:
+        pages = PAGES_IRAM
+
+    selection = st.sidebar.radio("Ir para", list(pages.keys()), key='page')
 
     if st.sidebar.button('Restaurar Sessão'):
         keys_to_remove = ['threat_data', 'freq_data', 'data', 'threat_asset_data']
@@ -40,7 +58,7 @@ def main():
                 del st.session_state[key]
         st.experimental_rerun()
 
-    page = PAGES[selection]
+    page = pages[selection]
     page.run()
 
 
