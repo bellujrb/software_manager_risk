@@ -1,6 +1,7 @@
 import streamlit as st
 
 import control_library
+import implementation
 import inventory_assets
 import loss_high
 import relevance
@@ -32,7 +33,8 @@ def main():
         "Risk Calculation": risk_calculation,
         "Risk Analysis": risk_analysis,
         "Control Library": control_library,
-        "Relevance": relevance
+        "Relevance": relevance,
+        "Implementation": implementation
     }
 
     PAGES_IRAM = {

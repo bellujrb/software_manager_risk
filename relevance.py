@@ -5,7 +5,6 @@ import pandas as pd
 def run():
     st.header("Tabela Control Relevance")
 
-    # Verificar se os dados das sessões estão disponíveis
     if 'control_data' not in st.session_state:
         st.warning("Por favor, registre os controles primeiro na biblioteca de controles.")
         return
@@ -14,14 +13,11 @@ def run():
         st.warning("Por favor, registre as ameaças primeiro no inventário de ameaças.")
         return
 
-    # Carregar dados das sessões
     control_data = st.session_state.control_data
     threat_data = st.session_state.threat_data
 
-    # Criar uma lista de eventos de ameaça únicos
     unique_threats = threat_data['Evento de Ameaça'].unique()
 
-    # Construir DataFrame de relevância de controles
     data_relevance = {'Control ID': control_data['Control ID']}
 
     for threat in unique_threats:
@@ -29,12 +25,10 @@ def run():
 
     df_relevance = pd.DataFrame(data_relevance)
 
-    # Selecionar o controle e o evento de ameaça a serem editados
     control_ids = df_relevance['Control ID'].tolist()
     selected_control = st.selectbox("Selecione o Controle ID para editar:", control_ids)
     selected_threat = st.selectbox("Selecione o Evento de Ameaça para editar:", unique_threats)
 
-    # Editar valor no DataFrame
     selected_index = control_ids.index(selected_control)
     new_value = st.number_input(
         f'Relevância do controle {selected_control} para {selected_threat}',
@@ -42,7 +36,6 @@ def run():
     )
     df_relevance.at[selected_index, selected_threat] = new_value
 
-    # Exibir o DataFrame atualizado
     st.dataframe(df_relevance)
 
     st.header("Tabela de Security Ratings")
@@ -58,4 +51,3 @@ def run():
     df_ratings = pd.DataFrame(data_ratings)
 
     st.dataframe(df_ratings)
-
