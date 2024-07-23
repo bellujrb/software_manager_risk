@@ -1,9 +1,9 @@
 import streamlit as st
 import requests
 import numpy as np
-import plotly.graph_objects as go
-from scipy.stats import lognorm
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Constantes
 sims = 10000
@@ -88,53 +88,73 @@ def fetch_appetite_data():
         st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
         return None
 
-def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
-    # Curva de apetite de risco
+def fetch_strength_data():
+    url = "http://3.142.77.137:8080/api/all-strength"
+    response = requests.get(url, headers={'accept': 'application/json'})
+    if response.status_code == 200:
+        return response.json()["Response"]
+    else:
+        st.error(f"Erro ao buscar dados da API: {response.status_code}")
+        return []
+
+def calculate_inherent_risk(monte_carlo_data, control_gap):
+    return monte_carlo_data / control_gap
+
+def calculate_residual_risk(inherent_risk, proposed_control_gap):
+    return inherent_risk / proposed_control_gap
+
+def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
+    # Convertendo dados de apetite de risco para listas
     risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
     losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]  # Convertendo para milhões
 
-    # Curva Monte Carlo
+    # Calculando dados da curva Monte Carlo
     no_of_bins = int(np.ceil(np.sqrt(sims)))
     freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
     lec_x = edges[:-1] / 1e6  # Convertendo para milhões
     lec_y = (100 - (np.cumsum(freqs) / sims * 100))  # Convertendo frequências para porcentagens
 
-    fig = go.Figure()
+    # Configurando o tamanho da figura
+    plt.figure(figsize=(14, 8))
 
     # Plotando a curva de apetite de risco
-    fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite',
-                             marker=dict(color='blue', size=5), line=dict(color='blue', width=2)))
+    sns.lineplot(x=losses, y=risks, marker='o', color='blue', label='Risk Appetite')
 
     # Plotando a curva de Monte Carlo
-    fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk',
-                             line=dict(color='red', width=2)))
+    sns.lineplot(x=lec_x, y=lec_y, color='red', label='Aggregated Risk')
 
-    fig.update_layout(
-        title='Loss Exceedance Curve',
-        xaxis_title='Loss (millions)',
-        yaxis_title='Probability (%)',
-        xaxis=dict(type='linear', tickmode='array', tickvals=list(range(0, int(max(lec_x))+2, 2))),
-        yaxis=dict(tickmode='array', tickvals=[i for i in range(0, 101, 10)],
-                   showgrid=True, gridcolor='gray'),  # Adicionando grid para melhor leitura
-        plot_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-        paper_bgcolor='rgba(0,0,0,0)',  # Fundo do papel transparente
-        font=dict(size=12, color='black'),  # Ajustando o tamanho e cor da fonte para melhor contraste
-        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')  # Configurando a legenda com fundo transparente
-    )
-    st.plotly_chart(fig)
+    # Plotando a curva de Risco Residual
+    sns.kdeplot(residual_risk / 1e6, cumulative=True, color='green', label='Residual Risk')
 
+    # Configurando títulos e rótulos dos eixos
+    plt.title('Loss Exceedance Curve')
+    plt.xlabel('Loss (millions)')
+    plt.ylabel('Probability (%)')
 
+    # Ajustando os limites e ticks do eixo X
+    plt.xticks(np.arange(0, max(lec_x), step=10))
+    plt.xlim(0, max(lec_x))
 
+    # Ajustando os limites e ticks do eixo Y
+    plt.yticks(np.arange(0, 101, step=10))
+    plt.ylim(0, 100)
 
+    # Adicionando grid
+    plt.grid(True, linestyle='--', alpha=0.6)
 
+    # Adicionando legenda
+    plt.legend(loc='upper right')
+
+    # Exibindo o gráfico no Streamlit
+    st.pyplot(plt)
 
 def run():
     st.title("Relatorio")
 
     # Selecionar o tipo de gráfico
-    chart_type = st.selectbox("Selecione o tipo de gráfico:", ["Histograma Agregado", "Curva de Excedência de Perda"])
+    chart_type = st.selectbox("Selecione o tipo de gráfico:", ["KDE Plot Agregado", "Curva de Excedência de Perda"])
 
-    if chart_type == "Histograma Agregado":
+    if chart_type == "KDE Plot Agregado":
         if st.button("Gerar Dados"):
             # Carregar dados agregados
             aggregated_data = fetch_aggregated_data()
@@ -148,20 +168,28 @@ def run():
                     'maxloss': aggregated_data['LossMax']
                 }
                 sim_results = generate_sim_data(rdata)
-                no_of_bins = int(np.ceil(np.sqrt(sims)))
-                freqs, edges = get_histogram_data(sim_results, no_of_bins)
-                bins = edges[:-1]
 
-                # Histograma com linha de Pareto
-                fig1 = go.Figure()
-                fig1.add_trace(go.Bar(x=bins, y=freqs, name='Histograma'))
-                fig1.add_trace(
-                    go.Scatter(x=bins, y=np.cumsum(freqs) / sum(freqs), name='Pareto', mode='lines+markers', yaxis='y2'))
-                fig1.update_layout(title='Histograma de Riscos Agregados com Linha de Pareto',
-                                   xaxis_title='Perda', yaxis_title='Frequência',
-                                   yaxis2=dict(overlaying='y', side='right', title='Frequência Acumulada'))
+                # Buscar control gap e proposed control gap
+                strength_data = fetch_strength_data()
+                control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+                proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
 
-                st.plotly_chart(fig1)
+                # Calcular inherent e residual risk
+                inherent_risk = calculate_inherent_risk(sim_results, control_gap)
+                residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+                # KDE plot ajustado para frequência
+                plt.figure(figsize=(10, 6))
+                sns.histplot(sim_results, bins=int(np.sqrt(sims)), kde=True, stat="frequency", label='Aggregated Risk')
+                sns.histplot(residual_risk, bins=int(np.sqrt(sims)), kde=True, stat="frequency", color='green', label='Residual Risk')
+                plt.title('KDE Plot de Riscos Agregados e Residual')
+                plt.xlabel('Perda')
+                plt.ylabel('Frequência')
+                plt.grid(True, linestyle='--', alpha=0.6)
+                plt.legend(loc='upper right')
+
+                # Exibindo o gráfico no Streamlit
+                st.pyplot(plt)
 
     elif chart_type == "Curva de Excedência de Perda":
         # Carregar dados de apetite
@@ -176,7 +204,17 @@ def run():
                 'maxloss': appetite_data['LossMax']
             }
             monte_carlo_data = generate_sim_data(rdata)
-            plot_loss_exceedance_curve(appetite_data, monte_carlo_data)
+
+            # Buscar control gap e proposed control gap
+            strength_data = fetch_strength_data()
+            control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+            proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
+
+            # Calcular inherent e residual risk
+            inherent_risk = calculate_inherent_risk(monte_carlo_data, control_gap)
+            residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+            plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk)
 
     # Carregar catálogos de eventos
     df_catalogues = get_catalogues()
@@ -196,20 +234,31 @@ def run():
                     'maxloss': float(event_data['LossMax'])
                 }
                 sim_results = generate_sim_data(rdata)
-                no_of_bins = int(np.ceil(np.sqrt(sims)))
-                freqs, edges = get_histogram_data(sim_results, no_of_bins)
-                bins = edges[:-1]
 
-                # Histograma com linha de Pareto
-                fig1 = go.Figure()
-                fig1.add_trace(go.Bar(x=bins, y=freqs, name='Histograma'))
-                fig1.add_trace(go.Scatter(x=bins, y=np.cumsum(freqs) / sum(freqs), name='Pareto', mode='lines+markers',
-                                          yaxis='y2'))
-                fig1.update_layout(title='Histograma de Riscos Agregados com Linha de Pareto',
-                                   xaxis_title='Perda', yaxis_title='Frequência',
-                                   yaxis2=dict(overlaying='y', side='right', title='Frequência Acumulada'))
+                # Buscar control gap e proposed control gap
+                strength_data = fetch_strength_data()
+                control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+                proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
 
-                st.plotly_chart(fig1)
+                # Calcular inherent e residual risk
+                inherent_risk = calculate_inherent_risk(sim_results, control_gap)
+                residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+                # KDE plot ajustado para frequência
+                plt.figure(figsize=(10, 6))
+                sns.histplot(sim_results, bins=int(np.sqrt(sims)), kde=True, stat="frequency", label='Aggregated Risk')
+                sns.histplot(residual_risk, bins=int(np.sqrt(sims)), kde=True, stat="frequency", color='green', label='Residual Risk')
+                plt.title('KDE Plot de Riscos do Evento e Residual')
+                plt.xlabel('Perda')
+                plt.ylabel('Frequência')
+                plt.grid(True, linestyle='--', alpha=0.6)
+                plt.legend(loc='upper right')
+
+                # Exibindo o gráfico no Streamlit
+                st.pyplot(plt)
 
     else:
         st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+
+if __name__ == "__main__":
+    run()

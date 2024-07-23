@@ -4,6 +4,8 @@ import numpy as np
 import plotly.graph_objects as go
 from scipy.stats import lognorm
 import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
 
 # Constantes
 sims = 10000
@@ -88,40 +90,53 @@ def fetch_appetite_data():
         st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
         return None
 
+
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
-    # Curva de apetite de risco
+    # Convertendo dados de apetite de risco para listas
     risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
     losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]  # Convertendo para milhões
 
-    # Curva Monte Carlo
+    # Calculando dados da curva Monte Carlo
     no_of_bins = int(np.ceil(np.sqrt(sims)))
     freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
     lec_x = edges[:-1] / 1e6  # Convertendo para milhões
     lec_y = (100 - (np.cumsum(freqs) / sims * 100))  # Convertendo frequências para porcentagens
 
-    fig = go.Figure()
+    # Configurando o tamanho da figura
+    plt.figure(figsize=(14, 8))
 
     # Plotando a curva de apetite de risco
-    fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite',
-                             marker=dict(color='blue', size=5), line=dict(color='blue', width=2)))
+    sns.lineplot(x=losses, y=risks, marker='o', color='blue', label='Risk Appetite')
 
     # Plotando a curva de Monte Carlo
-    fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk',
-                             line=dict(color='red', width=2)))
+    sns.lineplot(x=lec_x, y=lec_y, color='red', label='Aggregated Risk')
 
-    fig.update_layout(
-        title='Loss Exceedance Curve',
-        xaxis_title='Loss (millions)',
-        yaxis_title='Probability (%)',
-        xaxis=dict(type='linear', tickmode='array', tickvals=list(range(0, int(max(lec_x))+2, 2))),
-        yaxis=dict(tickmode='array', tickvals=[i for i in range(0, 101, 10)],
-                   showgrid=True, gridcolor='gray'),  # Adicionando grid para melhor leitura
-        plot_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-        paper_bgcolor='rgba(0,0,0,0)',  # Fundo do papel transparente
-        font=dict(size=12, color='black'),  # Ajustando o tamanho e cor da fonte para melhor contraste
-        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')  # Configurando a legenda com fundo transparente
-    )
-    st.plotly_chart(fig)
+    # Configurando títulos e rótulos dos eixos
+    plt.title('Loss Exceedance Curve')
+    plt.xlabel('Loss (millions)')
+    plt.ylabel('Probability (%)')
+
+    # Ajustando os limites e ticks do eixo X
+    plt.xticks(np.arange(0, max(lec_x), step=10))
+    plt.xlim(0, max(lec_x))
+
+    # Ajustando os limites e ticks do eixo Y
+    plt.yticks(np.arange(0, 101, step=10))
+    plt.ylim(0, 100)
+
+    # Adicionando grid
+    plt.grid(True, linestyle='--', alpha=0.6)
+
+    # Adicionando legenda
+    plt.legend(loc='upper right')
+
+    # Exibindo o gráfico no Streamlit
+    st.pyplot(plt)
+
+
+
+
+
 
 
 
