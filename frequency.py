@@ -1,35 +1,43 @@
 import streamlit as st
 import pandas as pd
+import requests
 
+# Function to get threat data from the API
+def get_threat_data():
+    response = requests.get("http://3.142.77.137:8080/api/all-frequency")
+    if response.status_code == 200:
+        return pd.DataFrame(response.json()["Response"])
+    else:
+        st.error("Falha ao obter dados de ameaças")
+        return pd.DataFrame()
+
+# Function to update threat data in the API
+def update_threat_data(data, id):
+    response = requests.put(f"http://3.142.77.137:8080/api/frequency/{id}", json=data)
+    if response.status_code == 200:
+        st.success("Dados atualizados com sucesso")
+    else:
+        st.error("Falha ao atualizar dados")
 
 def run():
     st.subheader('Análise de frequência de eventos de ameaça')
 
-    if 'threat_data' in st.session_state and not st.session_state.threat_data.empty:
-        eventos_ameaca = st.session_state.threat_data['Evento de Ameaça'].tolist()
+    # Retrieve threat data from the API
+    threat_data = get_threat_data()
+
+    if not threat_data.empty:
+        st.session_state.threat_data = threat_data
+        eventos_ameaca = st.session_state.threat_data['ThreatEvent'].tolist()
 
         if 'freq_data' not in st.session_state:
             st.session_state.freq_data = pd.DataFrame({
-                'ID do evento de ameaça': pd.Series(range(1, len(eventos_ameaca) + 1)),
+                'ID do evento de ameaça': threat_data['ID'],
                 'Evento de ameaça': eventos_ameaca,
-                'Frequência mínima': pd.Series([0] * len(eventos_ameaca)),
-                'Frequência máxima': pd.Series([0] * len(eventos_ameaca)),
-                'Frequência mais comum (moda)': pd.Series([0] * len(eventos_ameaca)),
-                'Informação de suporte': pd.Series([""] * len(eventos_ameaca))
+                'Frequência mínima': threat_data['MinFrequency'],
+                'Frequência máxima': threat_data['MaxFrequency'],
+                'Frequência mais comum (moda)': threat_data['MostLikelyFrequency'],
+                'Informação de suporte': threat_data['SupportingInformation']
             })
-        else:
-            existing_events = list(st.session_state.freq_data['Evento de ameaça'])
-            new_events = [event for event in eventos_ameaca if event not in existing_events]
-            for event in new_events:
-                new_freq_row = {
-                    'ID do evento de ameaça': len(st.session_state.freq_data) + 1,
-                    'Evento de ameaça': event,
-                    'Frequência mínima': 0,
-                    'Frequência máxima': 0,
-                    'Frequência mais comum (moda)': 0,
-                    'Informação de suporte': ""
-                }
-                st.session_state.freq_data = st.session_state.freq_data.append(new_freq_row, ignore_index=True)
 
         for idx, row in st.session_state.freq_data.iterrows():
             with st.expander(f"Editar {row['Evento de ameaça']}"):
@@ -46,6 +54,16 @@ def run():
                     st.session_state.freq_data.at[idx, 'Frequência máxima'] = f_max
                     st.session_state.freq_data.at[idx, 'Frequência mais comum (moda)'] = f_moda
                     st.session_state.freq_data.at[idx, 'Informação de suporte'] = supp_info
+
+                    update_data = {
+                        "max_frequency": f_max,
+                        "min_frequency": f_min,
+                        "most_common_frequency": f_moda,
+                        "support_information": supp_info,
+                        "threat_event": row['Evento de ameaça']
+                    }
+                    update_threat_data(update_data, str(row['ID do evento de ameaça']))
+
         st.write("Registro de Frequências de Eventos de Ameaça:")
         st.dataframe(st.session_state.freq_data)
 

@@ -129,7 +129,7 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
 
 
 def run():
-    st.title("Análise de Risco")
+    st.title("Relatorio")
 
     # Selecionar o tipo de gráfico
     chart_type = st.selectbox("Selecione o tipo de gráfico:", ["Histograma Agregado", "Curva de Excedência de Perda"])

@@ -1,79 +1,51 @@
-import pandas as pd
 import streamlit as st
+import pandas as pd
+import requests
 
-
-def get_frequency_data():
-    if 'freq_data' in st.session_state and not st.session_state.freq_data.empty:
-        freq_df = st.session_state.freq_data
-        freq_df = freq_df[['ID do evento de ameaça', 'Evento de ameaça', 'Frequência mínima', 'Frequência máxima',
-                           'Frequência mais comum (moda)']]
-        freq_df.columns = ['Threat event ID', 'Threat event', 'Frequency Min', 'Frequency Max', 'Frequency Mode']
-        return freq_df
+def get_risk_data():
+    url = 'http://3.142.77.137:8080/api/risk'
+    response = requests.get(url)
+    if response.status_code == 200:
+        json_response = response.json()
+        if 'Response' in json_response and json_response['Response']:
+            return pd.DataFrame(json_response['Response'])
+        else:
+            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
     else:
-        st.session_state.freq_data_error = True
-        st.error("Frequência de eventos de ameaça não disponível.")
-        return pd.DataFrame()
-
-
-def get_loss_data():
-    if 'loss_data' in st.session_state and not st.session_state.loss_data.empty:
-        loss_df = st.session_state.loss_data
-        loss_df = loss_df.groupby(['Threat Event ID', 'Threat event']).agg({
-            'Minimum Loss': 'sum',
-            'Maximum Loss': 'sum',
-            'Most likely Loss': 'sum'
-        }).reset_index()
-        loss_df.columns = ['Threat event ID', 'Threat event', 'Loss Min', 'Loss Max', 'Loss Mode']
-        return loss_df
-    else:
-        st.session_state.loss_data_error = True
-        st.error("Dados de perda não disponíveis.")
-        return pd.DataFrame()
-
-
-def generate_data(freq_df, loss_df):
-    if freq_df.empty or loss_df.empty:
-        return pd.DataFrame()
-
-    data = pd.merge(freq_df, loss_df, on=['Threat event ID', 'Threat event'], how='inner')
-
-    data['Risk Min'] = data['Frequency Min'] * data['Loss Min']
-    data['Risk Max'] = data['Frequency Max'] * data['Loss Max']
-    data['Risk Mode'] = data['Frequency Mode'] * data['Loss Mode']
-
-    data['Frequency Estimate (PERT)'] = (data['Frequency Min'] + 4 * data['Frequency Mode'] + data['Frequency Max']) / 6
-    data['Loss Estimate (PERT)'] = (data['Loss Min'] + 4 * data['Loss Mode'] + data['Loss Max']) / 6
-    data['Risk Estimate (PERT)'] = (data['Risk Min'] + 4 * data['Risk Mode'] + data['Risk Max']) / 6
-
-    return data
-
+        st.error(f'Erro ao recuperar dados de riscos: {response.status_code}')
+    return pd.DataFrame()
 
 def run():
     st.title('Risk Calculation')
 
-    st.session_state.freq_data_error = False
-    st.session_state.loss_data_error = False
+    if 'risk_data' not in st.session_state:
+        st.session_state.risk_data = get_risk_data()
 
-    freq_df = get_frequency_data()
-    loss_df = get_loss_data()
+    if st.session_state.risk_data.empty:
+        st.error('Não há dados de riscos disponíveis.')
+        return
 
-    df = generate_data(freq_df, loss_df)
+    df = st.session_state.risk_data
 
-    st.write("Tabela de Cálculo de Risco:")
+    df.rename(columns={
+        'threat_event_id': 'Threat Event ID',
+        'threat_event': 'Threat Event',
+        'risk_type': 'Risk Type',
+        'min': 'Min',
+        'max': 'Max',
+        'mode': 'Mode',
+        'estimate': 'Estimate'
+    }, inplace=True)
 
-    metric_choice = st.selectbox('Selecione a Métrica para Visualizar:', ['Frequency', 'Loss', 'Risk'])
+    st.write("Tabela de Riscos:")
 
-    if not st.session_state.freq_data_error and not st.session_state.loss_data_error:
-        if st.button('Mostrar Detalhes'):
-            if metric_choice == 'Frequency':
-                metric_data = df[['Threat event ID', 'Threat event', 'Frequency Min', 'Frequency Max', 'Frequency Mode',
-                                  'Frequency Estimate (PERT)']]
-            elif metric_choice == 'Loss':
-                metric_data = df[
-                    ['Threat event ID', 'Threat event', 'Loss Min', 'Loss Max', 'Loss Mode', 'Loss Estimate (PERT)']]
-            else:
-                metric_data = df[
-                    ['Threat event ID', 'Threat event', 'Risk Min', 'Risk Max', 'Risk Mode', 'Risk Estimate (PERT)']]
+    metric_choice = st.selectbox('Selecione o Tipo de Risco para Visualizar:', ['Frequency', 'Loss', 'Risk'])
 
+    if st.button('Mostrar Detalhes'):
+        metric_data = df[df['Risk Type'] == metric_choice]
+
+        if not metric_data.empty:
             st.write(f"Detalhes para {metric_choice}:")
             st.dataframe(metric_data)
+        else:
+            st.warning(f"Não há dados disponíveis para {metric_choice}.")

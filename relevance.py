@@ -1,42 +1,79 @@
 import streamlit as st
+import requests
 import pandas as pd
+
+
+def get_relevance_data():
+    url = 'http://3.142.77.137:8080/api/revelance'
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        st.error(f'Erro ao recuperar dados de relevância: {response.status_code}')
+        return None
+
+
+def update_relevance_data(control_id, porcent, type_of_attack):
+    url = 'http://3.142.77.137:8080/api/update-revelance'
+    payload = {
+        "controlId": int(control_id),
+        "porcent": int(porcent),
+        "type_of_attack": type_of_attack
+    }
+    headers = {'Content-Type': 'application/json'}
+    response = requests.put(url, json=payload, headers=headers)
+    if response.status_code == 200:
+        st.success('Relevância atualizada com sucesso!')
+        return response.json()
+    else:
+        st.error(f'Erro ao atualizar relevância: {response.status_code}')
+        return None
 
 
 def run():
     st.header("Tabela Control Relevance")
 
-    if 'control_data' not in st.session_state:
-        st.warning("Por favor, registre os controles primeiro na biblioteca de controles.")
+    # Obter dados da API
+    relevance_data = get_relevance_data()
+    if relevance_data is None:
         return
 
-    if 'threat_data' not in st.session_state:
-        st.warning("Por favor, registre as ameaças primeiro no inventário de ameaças.")
-        return
+    # Convertendo os dados da API em um DataFrame
+    df_relevance = pd.DataFrame(relevance_data['Response'])
 
-    control_data = st.session_state.control_data
-    threat_data = st.session_state.threat_data
+    # Pivotar os dados para ter os ataques como colunas
+    df_pivot = df_relevance.pivot(index='controlId', columns='type_of_attack', values='porcent').fillna(0)
+    df_pivot = df_pivot.reset_index()
 
-    unique_threats = threat_data['Evento de Ameaça'].unique()
+    # Exibindo a tabela original
+    st.subheader("Dados Originais")
+    table_placeholder = st.empty()
+    table_placeholder.dataframe(df_pivot)
 
-    data_relevance = {'Control ID': control_data['Control ID']}
+    # Configurar selectboxes para controle e tipo de ataque
+    control_ids = df_pivot['controlId'].unique()
+    attack_types = df_pivot.columns[1:]  # Excluir 'controlId' da lista de ataques
 
-    for threat in unique_threats:
-        data_relevance[threat] = [0] * len(control_data)
-
-    df_relevance = pd.DataFrame(data_relevance)
-
-    control_ids = df_relevance['Control ID'].tolist()
     selected_control = st.selectbox("Selecione o Controle ID para editar:", control_ids)
-    selected_threat = st.selectbox("Selecione o Evento de Ameaça para editar:", unique_threats)
+    selected_attack = st.selectbox("Selecione o Tipo de Ataque para editar:", attack_types)
 
-    selected_index = control_ids.index(selected_control)
-    new_value = st.number_input(
-        f'Relevância do controle {selected_control} para {selected_threat}',
-        min_value=0, max_value=4, value=int(df_relevance.at[selected_index, selected_threat])
-    )
-    df_relevance.at[selected_index, selected_threat] = new_value
+    # Filtrar a linha correspondente ao controle e tipo de ataque selecionados
+    selected_row = df_pivot[df_pivot['controlId'] == selected_control]
 
-    st.dataframe(df_relevance)
+    if not selected_row.empty:
+        selected_index = selected_row.index[0]
+        new_value = st.number_input(
+            f'Relevância do controle {selected_control} para {selected_attack}',
+            min_value=0, max_value=4, value=int(selected_row[selected_attack].values[0])
+        )
+
+        if st.button("Salvar Alterações"):
+            update_relevance_data(selected_control, new_value, selected_attack)
+            # Atualizar o valor na tabela local para exibição
+            df_pivot.at[selected_index, selected_attack] = new_value
+            table_placeholder.dataframe(df_pivot)  # Atualizar a tabela exibida
+    else:
+        st.warning("Combinação de Controle ID e Tipo de Ataque não encontrada.")
 
     st.header("Tabela de Security Ratings")
 

@@ -1,15 +1,19 @@
 import streamlit as st
 
 import control_library
+import control_strength
 import implementation
 import inventory_assets
 import loss_high
+import proposed_strength
 import relevance
+import report
 import risk_calculation
 import link_threat
 import inventory_threat
 import frequency
 import risk_analysis
+import test
 
 
 def main():
@@ -34,7 +38,10 @@ def main():
         "Risk Analysis": risk_analysis,
         "Control Library": control_library,
         "Relevance": relevance,
-        "Implementation": implementation
+        "Implementation": implementation,
+        "Control Strength": control_strength,
+        "Proposed Strength": proposed_strength,
+        "Report": report
     }
 
     PAGES_IRAM = {

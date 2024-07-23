@@ -1,34 +1,39 @@
 import streamlit as st
 import pandas as pd
+import requests
 
+def get_control_data():
+    url = 'http://3.142.77.137:8080/api/all-control'
+    response = requests.get(url)
+    if response.status_code == 200:
+        json_response = response.json()
+        if 'Response' in json_response and json_response['Response']:
+            return pd.DataFrame(json_response['Response'])
+        else:
+            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
+    else:
+        st.error(f'Erro ao recuperar dados de controle: {response.status_code}')
+    return pd.DataFrame()
 
 def run():
     st.title('Control Library')
 
     if 'control_data' not in st.session_state:
-        st.session_state.control_data = pd.DataFrame(columns=[
-            'Control ID', 'Control Type', 'Control Reference', 'Information', 'In Scope?'
-        ])
+        st.session_state.control_data = get_control_data()
 
-    with st.form("form_controls"):
-        st.write("Preencha as informações do controle a seguir:")
+    if st.session_state.control_data.empty:
+        st.error('Não há dados de controles disponíveis.')
+        return
 
-        control_id = st.text_input("Control ID")
-        control_type = st.text_input("Control Type")
-        control_reference = st.text_input("Control Reference")
-        information = st.text_area("Information")
-        in_scope = st.checkbox("In Scope?")
+    df = st.session_state.control_data
 
-        submitted = st.form_submit_button("Registrar Controle")
-        if submitted:
-            new_control = pd.DataFrame([{
-                'Control ID': control_id,
-                'Control Type': control_type,
-                'Control Reference': control_reference,
-                'Information': information,
-                'In Scope?': in_scope
-            }])
-            st.session_state.control_data = pd.concat([st.session_state.control_data, new_control], ignore_index=True)
+    df.rename(columns={
+        'ID': 'Control ID',
+        'ControlType': 'Control Type',
+        'ControlReference': 'Control Reference',
+        'Information': 'Information',
+        'InScope': 'In Scope?'
+    }, inplace=True)
 
     st.write("Controles Registrados:")
-    st.write(st.session_state.control_data)
+    st.dataframe(df)

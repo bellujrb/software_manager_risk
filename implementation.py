@@ -1,58 +1,36 @@
 import pandas as pd
 import streamlit as st
+import requests
 
 
-def fetch_control_data():
-    if 'control_data' in st.session_state:
-        return st.session_state.control_data[['Control ID']]
+# Function to fetch control implementation data from API
+def fetch_control_implementation_data():
+    url = 'http://3.142.77.137:8080/api/all-implementation'
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        data = response.json()["Response"]
+        return pd.DataFrame(data)
     else:
-        return pd.DataFrame(columns=['Control ID'])
+        st.error("Failed to fetch control implementation data")
+        return pd.DataFrame(columns=[
+            'id', 'controlId', 'current', 'proposed', 'percentCurrent', 'percentProposed', 'cost'
+        ])
 
 
-def fetch_threat_data():
-    if 'threat_data' in st.session_state:
-        return st.session_state.threat_data
-    else:
-        return pd.DataFrame(columns=['ID', 'Evento de Ameaça'])
+# Function to update control implementation data via PUT request
+def update_control_implementation(control_id, current, proposed, cost):
+    url = f'http://3.142.77.137:8080/api/implementation/{control_id}'
+    data = {
+        "current": int(current),
+        "proposed": int(proposed),
+        "cost": int(cost)
+    }
+    response = requests.put(url, json=data)
+    return response.status_code, response.json()
 
 
-def generate_control_implementation_data():
-    control_data = fetch_control_data()
-    implementation_data = pd.DataFrame(columns=[
-        'Control ID', 'Current Implementation', 'Current Percent Value', 'Proposed Implementation',
-        'Proposed Percent Value', 'Projected Cost'
-    ])
-
-    if not control_data.empty:
-        implementation_data['Control ID'] = control_data['Control ID']
-        implementation_data['Current Implementation'] = ''
-        implementation_data['Current Percent Value'] = 0
-        implementation_data['Proposed Implementation'] = ''
-        implementation_data['Proposed Percent Value'] = 0
-        implementation_data['Projected Cost'] = 0
-
-    return implementation_data
-
-
-def generate_aggregated_control_strength():
-    threat_data = fetch_threat_data()
-    aggregated_data = pd.DataFrame(columns=[
-        'Threat Event ID', 'Threat Event', 'Current Control Strength', 'Proposed Control Strength'
-    ])
-
-    if not threat_data.empty:
-        for _, threat_row in threat_data.iterrows():
-            new_row = pd.DataFrame([{
-                'Threat Event ID': threat_row['ID'],
-                'Threat Event': threat_row['Evento de Ameaça'],
-                'Current Control Strength': 'N/A',
-                'Proposed Control Strength': 'N/A'
-            }])
-            aggregated_data = pd.concat([aggregated_data, new_row], ignore_index=True)
-
-    return aggregated_data
-
-
+# Function to get percent value based on implementation
 def get_percent_value(implementation):
     if implementation == 0:
         return 3
@@ -68,57 +46,55 @@ def get_percent_value(implementation):
         return 0
 
 
+# Main application function
 def run():
     st.title('Control Management')
 
     view_type = st.selectbox("Select view type:", ["Control Implementation", "Aggregated Control Strength"])
 
     if view_type == "Control Implementation":
-        control_impl_df = generate_control_implementation_data()
+        control_impl_df = fetch_control_implementation_data()
 
         st.subheader("Control Implementation Details (Edit the fields):")
 
         if not control_impl_df.empty:
-            control_ids = control_impl_df['Control ID'].unique()
+            control_id = st.selectbox(
+                "Select Control ID to edit:",
+                options=control_impl_df['controlId'].unique()
+            )
 
-            for control_id in control_ids:
-                control_data = control_impl_df[control_impl_df['Control ID'] == control_id].iloc[0]
+            control_data = control_impl_df[control_impl_df['controlId'] == control_id].iloc[0]
 
-                with st.expander(f"Edit Control ID: {control_id}"):
-                    if f"current_impl_{control_id}" not in st.session_state:
-                        st.session_state[f"current_impl_{control_id}"] = control_data['Current Implementation']
-                    if f"proposed_impl_{control_id}" not in st.session_state:
-                        st.session_state[f"proposed_impl_{control_id}"] = control_data['Proposed Implementation']
+            with st.expander(f"Edit Control ID: {control_id}"):
+                current_impl = st.text_input(f"Current Implementation (Control ID: {control_id})",
+                                             value=control_data['current'],
+                                             key=f"current_impl_{control_id}")
+                current_percent = get_percent_value(int(current_impl)) if current_impl.isdigit() else 0
+                st.text(f"Current Percent Value (Control ID: {control_id}): {current_percent}%")
 
-                    current_impl = st.text_input(f"Current Implementation (Control ID: {control_id})",
-                                                 value=st.session_state[f"current_impl_{control_id}"],
-                                                 key=f"current_impl_{control_id}")
-                    current_percent = get_percent_value(int(current_impl)) if current_impl.isdigit() else 0
-                    st.text(f"Current Percent Value (Control ID: {control_id}): {current_percent}%")
+                proposed_impl = st.text_input(f"Proposed Implementation (Control ID: {control_id})",
+                                              value=control_data['proposed'],
+                                              key=f"proposed_impl_{control_id}")
+                proposed_percent = get_percent_value(int(proposed_impl)) if proposed_impl.isdigit() else 0
+                st.text(f"Proposed Percent Value (Control ID: {control_id}): {proposed_percent}%")
 
-                    proposed_impl = st.text_input(f"Proposed Implementation (Control ID: {control_id})",
-                                                  value=st.session_state[f"proposed_impl_{control_id}"],
-                                                  key=f"proposed_impl_{control_id}")
-                    proposed_percent = get_percent_value(int(proposed_impl)) if proposed_impl.isdigit() else 0
-                    st.text(f"Proposed Percent Value (Control ID: {control_id}): {proposed_percent}%")
+                projected_cost = st.number_input(f"Projected Cost (Control ID: {control_id})",
+                                                 value=control_data['cost'], min_value=0,
+                                                 key=f"projected_cost_{control_id}")
 
-                    projected_cost = st.number_input(f"Projected Cost (Control ID: {control_id})",
-                                                     value=control_data['Projected Cost'], min_value=0,
-                                                     key=f"projected_cost_{control_id}")
-
-                    if st.button(f"Update Control ID: {control_id}", key=f"update_{control_id}"):
-                        idx = control_impl_df[control_impl_df['Control ID'] == control_id].index[0]
-                        st.session_state.control_data.at[idx, 'Current Implementation'] = current_impl
-                        st.session_state.control_data.at[idx, 'Current Percent Value'] = current_percent
-                        st.session_state.control_data.at[idx, 'Proposed Implementation'] = proposed_impl
-                        st.session_state.control_data.at[idx, 'Proposed Percent Value'] = proposed_percent
-                        st.session_state.control_data.at[idx, 'Projected Cost'] = projected_cost
+                if st.button(f"Update Control ID: {control_id}", key=f"update_{control_id}"):
+                    status_code, response = update_control_implementation(control_id, current_impl, proposed_impl,
+                                                                          projected_cost)
+                    if status_code == 200:
+                        st.success(f"Control ID {control_id} updated successfully!")
+                    else:
+                        st.error(f"Failed to update Control ID {control_id}. Status code: {status_code}")
+                        st.json(response)  # Print the error response for debugging
 
             st.write("Control Implementation Records:")
-            st.dataframe(st.session_state.control_data[
-                             ['Control ID', 'Current Implementation', 'Current Percent Value',
-                              'Proposed Implementation',
-                              'Proposed Percent Value', 'Projected Cost']])
+            st.dataframe(control_impl_df[
+                             ['controlId', 'current', 'percentCurrent',
+                              'proposed', 'percentProposed', 'cost']])
 
         else:
             st.write("No controls found. Please add controls in the Control Library first.")
@@ -138,12 +114,25 @@ def run():
         st.dataframe(df_ratings)
 
     elif view_type == "Aggregated Control Strength":
-        aggregated_df = generate_aggregated_control_strength()
+        threat_data = ()
+        aggregated_data = pd.DataFrame(columns=[
+            'Threat Event ID', 'Threat Event', 'Current Control Strength', 'Proposed Control Strength'
+        ])
+
+        if not threat_data.empty:
+            for _, threat_row in threat_data.iterrows():
+                new_row = pd.DataFrame([{
+                    'Threat Event ID': threat_row['ID'],
+                    'Threat Event': threat_row['Evento de Ameaça'],
+                    'Current Control Strength': 'N/A',
+                    'Proposed Control Strength': 'N/A'
+                }])
+                aggregated_data = pd.concat([aggregated_data, new_row], ignore_index=True)
 
         st.subheader("Aggregated Control Strength")
 
-        if not aggregated_df.empty:
-            for _, row in aggregated_df.iterrows():
+        if not aggregated_data.empty:
+            for _, row in aggregated_data.iterrows():
                 threat_event_id = row['Threat Event ID']
                 threat_event = row['Threat Event']
                 current_strength = row['Current Control Strength']
@@ -155,7 +144,7 @@ def run():
                     st.text(f"Proposed Control Strength: {proposed_strength}")
 
             st.write("Aggregated Control Strength Records:")
-            st.dataframe(aggregated_df)
+            st.dataframe(aggregated_data)
 
         else:
             st.write("No threats found. Please add threats in the Threat Inventory first.")
