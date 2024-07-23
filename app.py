@@ -13,8 +13,6 @@ import link_threat
 import inventory_threat
 import frequency
 import risk_analysis
-import test
-
 
 def main():
     st.title('Sistema de Gerenciamento de Eventos de Ameaça e Ativos')
