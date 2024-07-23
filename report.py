@@ -150,7 +150,49 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
 
 def run():
     st.title("Relatorio")
+    # Carregar catálogos de eventos
+    df_catalogues = get_catalogues()
+    if not df_catalogues.empty:
+        events = df_catalogues['ThreatEvent'].tolist()
+        selected_event = st.selectbox("Selecione o Evento de Ameaça", options=events)
 
+        if st.button("Carregar Dados do Evento e Simular Riscos"):
+            event_data = fetch_event_data(selected_event)
+            if event_data:
+                rdata = {
+                    'minfreq': float(event_data['FrequencyMin']),
+                    'pertfreq': float(event_data['FrequencyEstimate']),
+                    'maxfreq': float(event_data['FrequencyMax']),
+                    'minloss': float(event_data['LossMin']),
+                    'pertloss': float(event_data['LossEstimate']),
+                    'maxloss': float(event_data['LossMax'])
+                }
+                sim_results = generate_sim_data(rdata)
+
+                # Buscar control gap e proposed control gap
+                strength_data = fetch_strength_data()
+                control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+                proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
+
+                # Calcular inherent e residual risk
+                inherent_risk = calculate_inherent_risk(sim_results, control_gap)
+                residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+                # KDE plot ajustado para frequência
+                plt.figure(figsize=(10, 6))
+                sns.histplot(sim_results, bins=int(np.sqrt(sims)), kde=True, stat="frequency", label='Aggregated Risk')
+                sns.histplot(residual_risk, bins=int(np.sqrt(sims)), kde=True, stat="frequency", color='green', label='Residual Risk')
+                plt.title('KDE Plot de Riscos do Evento e Residual')
+                plt.xlabel('Perda')
+                plt.ylabel('Frequência')
+                plt.grid(True, linestyle='--', alpha=0.6)
+                plt.legend(loc='upper right')
+
+                # Exibindo o gráfico no Streamlit
+                st.pyplot(plt)
+
+    else:
+        st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
     # Selecionar o tipo de gráfico
     chart_type = st.selectbox("Selecione o tipo de gráfico:", ["KDE Plot Agregado", "Curva de Excedência de Perda"])
 
@@ -216,49 +258,7 @@ def run():
 
             plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk)
 
-    # Carregar catálogos de eventos
-    df_catalogues = get_catalogues()
-    if not df_catalogues.empty:
-        events = df_catalogues['ThreatEvent'].tolist()
-        selected_event = st.selectbox("Selecione o Evento de Ameaça", options=events)
-
-        if st.button("Carregar Dados do Evento e Simular Riscos"):
-            event_data = fetch_event_data(selected_event)
-            if event_data:
-                rdata = {
-                    'minfreq': float(event_data['FrequencyMin']),
-                    'pertfreq': float(event_data['FrequencyEstimate']),
-                    'maxfreq': float(event_data['FrequencyMax']),
-                    'minloss': float(event_data['LossMin']),
-                    'pertloss': float(event_data['LossEstimate']),
-                    'maxloss': float(event_data['LossMax'])
-                }
-                sim_results = generate_sim_data(rdata)
-
-                # Buscar control gap e proposed control gap
-                strength_data = fetch_strength_data()
-                control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
-                proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
-
-                # Calcular inherent e residual risk
-                inherent_risk = calculate_inherent_risk(sim_results, control_gap)
-                residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
-
-                # KDE plot ajustado para frequência
-                plt.figure(figsize=(10, 6))
-                sns.histplot(sim_results, bins=int(np.sqrt(sims)), kde=True, stat="frequency", label='Aggregated Risk')
-                sns.histplot(residual_risk, bins=int(np.sqrt(sims)), kde=True, stat="frequency", color='green', label='Residual Risk')
-                plt.title('KDE Plot de Riscos do Evento e Residual')
-                plt.xlabel('Perda')
-                plt.ylabel('Frequência')
-                plt.grid(True, linestyle='--', alpha=0.6)
-                plt.legend(loc='upper right')
-
-                # Exibindo o gráfico no Streamlit
-                st.pyplot(plt)
-
-    else:
-        st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+    
 
 if __name__ == "__main__":
     run()
