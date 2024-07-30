@@ -65,11 +65,12 @@ def run():
         st.error('Não há dados de ativos, eventos de ameaça ou catálogos disponíveis.')
         return
 
-    # Exibir catálogos de ameaça
     st.subheader("Catálogos de Ameaça")
+    st.session_state.catalogue_data.columns = [
+        'ID', 'Grupo de Ameaça', 'Evento de Ameaça', 'Descrição', 'Em Escopo'
+    ]
     st.dataframe(st.session_state.catalogue_data)
 
-    # Formulário para adicionar novo catálogo
     with st.form("new_catalogue"):
         st.write("Adicionar Novo Catálogo de Ameaça")
         threat_group = st.text_input("Grupo de Ameaça")
@@ -88,7 +89,10 @@ def run():
             response = post_catalogue(new_catalogue)
             if response.status_code == 200:
                 st.success("Catálogo adicionado com sucesso!")
-                st.session_state.catalogue_data = get_catalogues()  # Atualiza os dados do catálogo
+                st.session_state.catalogue_data = get_catalogues()
+                st.session_state.catalogue_data.columns = [
+                    'ID', 'Grupo de Ameaça', 'Evento de Ameaça', 'Descrição', 'Em Escopo'
+                ]
                 st.experimental_rerun()
             else:
                 st.error(f"Erro ao adicionar catálogo: {response.status_code} - {response.text}")

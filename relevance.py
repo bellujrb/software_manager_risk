@@ -33,31 +33,24 @@ def update_relevance_data(control_id, porcent, type_of_attack):
 def run():
     st.header("Tabela Control Relevance")
 
-    # Obter dados da API
     relevance_data = get_relevance_data()
     if relevance_data is None:
         return
 
-    # Convertendo os dados da API em um DataFrame
     df_relevance = pd.DataFrame(relevance_data['Response'])
 
-    # Pivotar os dados para ter os ataques como colunas
     df_pivot = df_relevance.pivot(index='controlId', columns='type_of_attack', values='porcent').fillna(0)
     df_pivot = df_pivot.reset_index()
 
-    # Exibindo a tabela original
     st.subheader("Dados Originais")
     table_placeholder = st.empty()
     table_placeholder.dataframe(df_pivot)
-
-    # Configurar selectboxes para controle e tipo de ataque
     control_ids = df_pivot['controlId'].unique()
     attack_types = df_pivot.columns[1:]  # Excluir 'controlId' da lista de ataques
 
     selected_control = st.selectbox("Selecione o Controle ID para editar:", control_ids)
     selected_attack = st.selectbox("Selecione o Tipo de Ataque para editar:", attack_types)
 
-    # Filtrar a linha correspondente ao controle e tipo de ataque selecionados
     selected_row = df_pivot[df_pivot['controlId'] == selected_control]
 
     if not selected_row.empty:
@@ -69,7 +62,6 @@ def run():
 
         if st.button("Salvar Alterações"):
             update_relevance_data(selected_control, new_value, selected_attack)
-            # Atualizar o valor na tabela local para exibição
             df_pivot.at[selected_index, selected_attack] = new_value
             table_placeholder.dataframe(df_pivot)  # Atualizar a tabela exibida
     else:

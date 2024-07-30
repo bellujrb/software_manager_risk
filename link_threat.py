@@ -1,39 +1,42 @@
 import streamlit as st
 import pandas as pd
-import requests
 
 
 def get_threat_events():
-    url = 'http://3.142.77.137:8080/api/all-event'
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_response = response.json()
-        if 'Response' in json_response and json_response['Response']:
-            df = pd.DataFrame(json_response['Response'])
-            required_columns = ['threat_id', 'threat_event', 'affected_asset']
-            # Adicionar colunas ausentes com valores vazios
-            for col in required_columns:
-                if col not in df.columns:
-                    df[col] = ""
-            return df.fillna("")
-        else:
-            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
-    else:
-        st.error(f'Erro ao recuperar eventos de ameaça: {response.status_code}')
-    # Retornar DataFrame com colunas necessárias vazias se ocorrer erro
-    return pd.DataFrame(columns=['threat_id', 'threat_event', 'affected_asset'])
+    data = {
+        "Response": [
+            {
+                "threat_id": 1,
+                "threat_event": "Malware attack",
+                "affected_asset": ["", "Alta Plataforma"]
+            },
+            {
+                "threat_id": 2,
+                "threat_event": "Technology failure",
+                "affected_asset": ["Alta Plataforma", "Baixa Plataforma",
+                                   "API"]
+            },
+            {
+                "threat_id": 3,
+                "threat_event": "Infrastructure Failure event",
+                "affected_asset": ["Alta Plataforma", "Baixa Plataforma",
+                                   "API"]
+            },
+        ]
+    }
+
+    df = pd.DataFrame(data["Response"])
+    df['affected_asset'] = df['affected_asset'].apply(lambda x: ', '.join(filter(None, x)))
+    return df
 
 
 def run():
-    st.title('Vinculação de Eventos de Ameaça a Ativos')
+    st.title('Vinculação de ativos de eventos de ameaça')
 
-    if 'threat_data' not in st.session_state:
-        st.session_state.threat_data = get_threat_events()
+    threat_data = get_threat_events()
 
-    if st.session_state.threat_data.empty:
-        st.error('Não há dados de eventos de ameaça disponíveis.')
-        return
-
-    st.write("Eventos de Ameaça:")
-    if not st.session_state.threat_data.empty:
-        st.dataframe(st.session_state.threat_data[['threat_id', 'threat_event', 'affected_asset']])
+    if threat_data.empty:
+        st.error('Nenhum dado de evento de ameaça disponível.')
+    else:
+        st.write("Eventos de ameaça:")
+        st.dataframe(threat_data[['threat_id', 'threat_event', 'affected_asset']])

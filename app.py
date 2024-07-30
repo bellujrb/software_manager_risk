@@ -1,9 +1,11 @@
 import streamlit as st
 
+# Importação dos módulos de cada página
 import control_library
 import control_strength
 import implementation
 import inventory_assets
+import loss_appoach
 import loss_high
 import proposed_strength
 import relevance
@@ -13,62 +15,57 @@ import link_threat
 import inventory_threat
 import frequency
 import risk_analysis
-import test
+import single_estimate
+import target
 
 
 def main():
     st.title('Sistema de Gerenciamento de Eventos de Ameaça e Ativos')
 
-    st.write("""
-    Bem-vindo ao Sistema de Gerenciamento de Eventos de Ameaça e Ativos! Este sistema permite:
-    - Registrar eventos de ameaças potenciais.
-    - Analisar a frequência com que esses eventos podem ocorrer.
-    - Associar esses eventos a ativos específicos dentro da organização.
-    - Visualizar as perdas associadas a esses eventos.
-    Utilize a barra lateral para navegar entre as diferentes funcionalidades do aplicativo.
-    """)
+    if 'loss_mode' not in st.session_state:
+        st.session_state['loss_mode'] = 'default'
 
-    PAGES_QIRA = {
-        "Inventário de Assets": inventory_assets,
-        "Threat Event Catalogue": inventory_threat,
-        "Frequency": frequency,
-        "Threat Events & Assets": link_threat,
-        "Loss-High": loss_high,
-        "Risk Calculation": risk_calculation,
-        "Risk Analysis": risk_analysis,
-        "Control Library": control_library,
-        "Relevance": relevance,
-        "Implementation": implementation,
-        "Control Strength": control_strength,
-        "Proposed Strength": proposed_strength,
-        "Report": report
-    }
+    st.sidebar.title("Navegação")
 
-    PAGES_IRAM = {
-        "Em desenvolvimento": inventory_assets,
-    }
+    # Configuração inicial das páginas
+    pages = [
+        ("Ambiente Alvo", target.run),
+        ("Inventário de Ativos", inventory_assets.run),
+        ("Catálogo de Ameaça", inventory_threat.run),
+        ("Frequência", frequency.run),
+        ("Linkar Eventos e Ativos", link_threat.run),
+        ("LossAppoach", loss_appoach.run),
+        ("Cálculo de Risco", risk_calculation.run),
+        ("Análise de Risco", risk_analysis.run),
+        ("Biblioteca de Controles", control_library.run),
+        ("Relevância", relevance.run),
+        ("Implementação", implementation.run),
+        ("Força de controle", control_strength.run),
+        ("Força de controle Proposta", proposed_strength.run),
+        ("Relatório", report.run)
+    ]
 
-    st.sidebar.title('Navegação')
+    # Encontrar a posição correta para inserir as novas páginas
+    index = next((i for i, (title, _) in enumerate(pages) if title == "LossAppoach"), None) + 1
 
-    database_selection = st.sidebar.radio("Selecione a metodologia", ["ISF QIRA", "IRAM2"],
-                                          key='database')
+    # Inserir páginas dinamicamente baseadas no 'loss_mode'
+    if st.session_state['loss_mode'] == "single_estimate":
+        pages.insert(index, ("Estimativa Única", single_estimate.run))
+    elif st.session_state['loss_mode'] == "high_loss":
+        pages.insert(index, ("Perda Alta", loss_high.run))
+    elif st.session_state['loss_mode'] == "granular":
+        pages.insert(index, ("Granular", risk_analysis.run))
 
-    if database_selection == "ISF QIRA":
-        pages = PAGES_QIRA
-    else:
-        pages = PAGES_IRAM
+    # Transformar lista de páginas em dicionário para o radio
+    pages_dict = dict(pages)
 
-    selection = st.sidebar.radio("Ir para", list(pages.keys()), key='page')
+    # Seleção da página na sidebar
+    selection = st.sidebar.radio("Ir para", list(pages_dict.keys()))
 
-    if st.sidebar.button('Restaurar Sessão'):
-        keys_to_remove = ['threat_data', 'freq_data', 'data', 'threat_asset_data']
-        for key in keys_to_remove:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.experimental_rerun()
-
-    page = pages[selection]
-    page.run()
+    # Executar a função da página selecionada
+    page_function = pages_dict.get(selection)
+    if page_function:
+        page_function()
 
 
 if __name__ == "__main__":

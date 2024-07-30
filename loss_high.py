@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 
+
 def get_loss_high():
     url = 'http://3.142.77.137:8080/api/losshigh'
     response = requests.get(url)
@@ -15,6 +16,7 @@ def get_loss_high():
         st.error(f'Erro ao recuperar dados de perdas: {response.status_code}')
     return pd.DataFrame()
 
+
 def run():
     st.title('Loss-High')
 
@@ -27,18 +29,17 @@ def run():
 
     df = st.session_state.loss_data
 
-    # Expandir a coluna 'losses' em múltiplas colunas
     losses_df = df['losses'].apply(pd.Series)
     df = pd.concat([df.drop(columns=['losses']), losses_df], axis=1)
 
     df.rename(columns={
-        'threat_event_id': 'Threat Event ID',
-        'threat_event': 'Threat Event',
-        'assets': 'Assets(s)',
-        'loss_type': 'Loss Type',
-        'minimum_loss': 'Minimum Loss',
-        'maximum_loss': 'Maximum Loss',
-        'most_likely_loss': 'Most Likely Loss'
+        'threat_event_id': 'ID do Evento de Ameaça',
+        'threat_event': 'Evento de Ameaça',
+        'assets': 'Ativo(s)',
+        'loss_type': 'Tipo de Perda',
+        'minimum_loss': 'Perda Mínima',
+        'maximum_loss': 'Perda Máxima',
+        'most_likely_loss': 'Perda Mais Provável'
     }, inplace=True)
 
     st.write("Tabela de Perdas:")

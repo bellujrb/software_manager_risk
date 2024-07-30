@@ -3,7 +3,6 @@ import pandas as pd
 import streamlit as st
 
 
-# Função para carregar os dados da API para a tabela original
 def fetch_data_from_api():
     url = "http://3.142.77.137:8080/api/all-strength"
     response = requests.get(url, headers={'accept': 'application/json'})
@@ -14,23 +13,18 @@ def fetch_data_from_api():
         return []
 
 
-# Função para exibir a tabela combinada
 def display_combined_table(data):
-    # Criando um DataFrame organizado
     df = pd.DataFrame(data)
 
-    # Filtrando controles com controlId menor que 0
     df = df[df['controlId'] >= 0]
 
     df_pivot = df.pivot_table(index='controlId', columns='type_of_attack', values='porcent',
                               aggfunc='first').reset_index()
     df_pivot.fillna('-', inplace=True)
 
-    # Renomear colunas para legibilidade
     df_pivot.columns.name = None
     df_pivot.rename(columns={'controlId': 'Control'}, inplace=True)
 
-    # Ordenando as colunas para manter o design esperado
     columns_order = ['Control'] + [col for col in df_pivot.columns if col != 'Control']
     df_pivot = df_pivot[columns_order]
 
@@ -39,12 +33,9 @@ def display_combined_table(data):
     return df_pivot
 
 
-# Função para exibir a tabela de cálculo específico
 def display_specific_calculation(data, calculation_type):
-    # Criando um DataFrame organizado
     df = pd.DataFrame(data)
 
-    # Selecionando a coluna apropriada baseado no tipo de cálculo
     if calculation_type == 'Aggregate':
         df = df[['type_of_attack', 'aggregate']]
         df.rename(columns={'aggregate': 'Porcentagem'}, inplace=True)
@@ -55,7 +46,6 @@ def display_specific_calculation(data, calculation_type):
     df_pivot = df.pivot_table(index='type_of_attack', values='Porcentagem', aggfunc='first').reset_index()
     df_pivot.fillna('-', inplace=True)
 
-    # Renomear colunas para legibilidade
     df_pivot.columns.name = None
     df_pivot.rename(columns={'type_of_attack': 'Ataque'}, inplace=True)
 
@@ -66,6 +56,7 @@ def display_specific_calculation(data, calculation_type):
 
 # Função principal
 def run():
+    global filtered_data
     st.title("Interface de Gestão de Controles e Ataques")
 
     # Mostrar a tabela combinada original

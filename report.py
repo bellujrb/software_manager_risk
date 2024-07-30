@@ -1,15 +1,13 @@
 import streamlit as st
 import requests
 import numpy as np
+import pandas as pd
 import plotly.graph_objects as go
 from scipy.stats import lognorm
-import pandas as pd
 
-# Constantes
 sims = 10000
 STDEV = 3.29
 
-# Funções de Utilidade
 def lognorminvpert(min_val, pert, max_val):
     mean = np.log(pert)
     sigma = (np.log(max_val) - np.log(min_val)) / STDEV
@@ -24,19 +22,14 @@ def generate_sim_data(rdata):
     sim_data = np.zeros(sims)
     for sim_ctr in range(sims):
         sim_data[sim_ctr] = lognorm_risk_pert(
-            rdata['minfreq'], rdata['pertfreq'], rdata['maxfreq'],
-            rdata['minloss'], rdata['pertloss'], rdata['maxloss']
+            rdata['FrequencyMin'], rdata['FrequencyEstimate'], rdata['FrequencyMax'],
+            rdata['LossMin'], rdata['LossEstimate'], rdata['LossMax']
         )
     return sim_data
 
 def get_histogram_data(values, bins):
     freqs, edges = np.histogram(values, bins=bins)
     return freqs, edges
-
-def get_lecs(freqs, edges):
-    cumulative_freqs = np.cumsum(freqs)
-    lecs = (len(freqs) - cumulative_freqs + freqs) / len(freqs)
-    return edges[:-1], lecs
 
 def get_catalogues():
     url = 'http://3.142.77.137:8080/api/all-catalogue'
@@ -88,97 +81,136 @@ def fetch_appetite_data():
         st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
         return None
 
-def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
-    # Curva de apetite de risco
-    risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
-    losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]  # Convertendo para milhões
+def fetch_strength_data():
+    url = "http://3.142.77.137:8080/api/all-strength"
+    response = requests.get(url, headers={'accept': 'application/json'})
+    if response.status_code == 200:
+        return response.json()["Response"]
+    else:
+        st.error(f"Erro ao buscar dados da API: {response.status_code}")
+        return []
 
-    # Curva Monte Carlo
+def safe_float_conversion(value, default=1.0):
+    try:
+        return float(value.strip('%')) / 100
+    except (ValueError, AttributeError):
+        return default
+
+def calculate_inherent_risk(monte_carlo_data, control_gap):
+    control_gap = safe_float_conversion(control_gap)
+    return monte_carlo_data / control_gap
+
+def calculate_residual_risk(inherent_risk, proposed_control_gap):
+    proposed_control_gap = safe_float_conversion(proposed_control_gap)
+    return inherent_risk / proposed_control_gap
+
+def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
+    risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
+    losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
+
     no_of_bins = int(np.ceil(np.sqrt(sims)))
     freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
-    lec_x = edges[:-1] / 1e6  # Convertendo para milhões
-    lec_y = (100 - (np.cumsum(freqs) / sims * 100))  # Convertendo frequências para porcentagens
+    lec_x = edges[:-1] / 1e6
+    lec_y = (100 - (np.cumsum(freqs) / sims * 100))
+
+    freqs_residual, edges_residual = get_histogram_data(residual_risk, no_of_bins)
+    lec_x_residual = edges_residual[:-1] / 1e6
+    lec_y_residual = (100 - (np.cumsum(freqs_residual) / sims * 100))
 
     fig = go.Figure()
 
-    # Plotando a curva de apetite de risco
-    fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite',
-                             marker=dict(color='blue', size=5), line=dict(color='blue', width=2)))
+    fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite', line=dict(color='blue')))
 
-    # Plotando a curva de Monte Carlo
-    fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk',
-                             line=dict(color='red', width=2)))
+    fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
+
+    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
 
     fig.update_layout(
         title='Loss Exceedance Curve',
         xaxis_title='Loss (millions)',
         yaxis_title='Probability (%)',
-        xaxis=dict(type='linear', tickmode='array', tickvals=list(range(0, int(max(lec_x))+2, 2))),
-        yaxis=dict(tickmode='array', tickvals=[i for i in range(0, 101, 10)],
-                   showgrid=True, gridcolor='gray'),  # Adicionando grid para melhor leitura
-        plot_bgcolor='rgba(0,0,0,0)',  # Fundo transparente
-        paper_bgcolor='rgba(0,0,0,0)',  # Fundo do papel transparente
-        font=dict(size=12, color='black'),  # Ajustando o tamanho e cor da fonte para melhor contraste
-        legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')  # Configurando a legenda com fundo transparente
+        xaxis=dict(tickmode='array', tickvals=np.arange(0, max(lec_x), step=10), range=[0, max(lec_x)]),
+        yaxis=dict(tickmode='array', tickvals=np.arange(0, 101, step=10), range=[0, 100]),
+        legend=dict(x=0.01, y=0.99, borderwidth=1),
+        plot_bgcolor='rgb(17,17,17)',
+        paper_bgcolor='rgb(17,17,17)',
+        font=dict(color='white')
     )
+
     st.plotly_chart(fig)
 
+def plot_simulation_lines(sim_results1, sim_results2, title):
+    freqs1, edges1 = get_histogram_data(sim_results1, bins=50)
+    freqs2, edges2 = get_histogram_data(sim_results2, bins=50)
 
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=edges1[:-1], y=freqs1, mode='lines', name='Aggregated Risk', line=dict(color='red')))
+    fig.add_trace(go.Scatter(x=edges2[:-1], y=freqs2, mode='lines', name='Modelled Risk', line=dict(color='white')))
 
+    fig.update_layout(
+        title=title,
+        xaxis_title='Loss',
+        yaxis_title='Count of Simulations',
+        plot_bgcolor='rgb(17,17,17)',
+        paper_bgcolor='rgb(17,17,17)',
+        font=dict(color='white'),
+        xaxis=dict(showgrid=True, gridcolor='gray'),
+        yaxis=dict(showgrid=True, gridcolor='gray')
+    )
 
-
+    st.plotly_chart(fig)
 
 def run():
     st.title("Relatorio")
 
-    # Selecionar o tipo de gráfico
-    chart_type = st.selectbox("Selecione o tipo de gráfico:", ["Histograma Agregado", "Curva de Excedência de Perda"])
+    chart_type = st.selectbox("Selecione o tipo de gráfico:", ["KDE Plot Agregado", "Curva de Excedência de Perda"])
 
-    if chart_type == "Histograma Agregado":
+    if chart_type == "KDE Plot Agregado":
         if st.button("Gerar Dados"):
-            # Carregar dados agregados
             aggregated_data = fetch_aggregated_data()
             if aggregated_data:
                 rdata = {
-                    'minfreq': 1,
-                    'pertfreq': 1.5,
-                    'maxfreq': 2,
-                    'minloss': aggregated_data['LossMin'],
-                    'pertloss': aggregated_data['LossEstimate'],
-                    'maxloss': aggregated_data['LossMax']
+                    'FrequencyMin': 1,
+                    'FrequencyEstimate': 1.5,
+                    'FrequencyMax': 2,
+                    'LossMin': aggregated_data['LossMin'],
+                    'LossEstimate': aggregated_data['LossEstimate'],
+                    'LossMax': aggregated_data['LossMax']
                 }
                 sim_results = generate_sim_data(rdata)
-                no_of_bins = int(np.ceil(np.sqrt(sims)))
-                freqs, edges = get_histogram_data(sim_results, no_of_bins)
-                bins = edges[:-1]
 
-                # Histograma com linha de Pareto
-                fig1 = go.Figure()
-                fig1.add_trace(go.Bar(x=bins, y=freqs, name='Histograma'))
-                fig1.add_trace(
-                    go.Scatter(x=bins, y=np.cumsum(freqs) / sum(freqs), name='Pareto', mode='lines+markers', yaxis='y2'))
-                fig1.update_layout(title='Histograma de Riscos Agregados com Linha de Pareto',
-                                   xaxis_title='Perda', yaxis_title='Frequência',
-                                   yaxis2=dict(overlaying='y', side='right', title='Frequência Acumulada'))
+                # Buscar control gap e proposed control gap
+                strength_data = fetch_strength_data()
+                control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+                proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
 
-                st.plotly_chart(fig1)
+                inherent_risk = calculate_inherent_risk(sim_results, control_gap)
+                residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+                plot_simulation_lines(sim_results, residual_risk, "Modelled Risk")
 
     elif chart_type == "Curva de Excedência de Perda":
-        # Carregar dados de apetite
         appetite_data = fetch_appetite_data()
         if appetite_data and "LossExceedance" in appetite_data:
             rdata = {
-                'minfreq': 1,
-                'pertfreq': 1.5,
-                'maxfreq': 2,
-                'minloss': appetite_data['LossMin'],
-                'pertloss': appetite_data['LossEstimate'],
-                'maxloss': appetite_data['LossMax']
+                'FrequencyMin': appetite_data['FrequencyMin'],
+                'FrequencyEstimate': appetite_data['FrequencyEstimate'],
+                'FrequencyMax': appetite_data['FrequencyMax'],
+                'LossMin': appetite_data['LossMin'],
+                'LossEstimate': appetite_data['LossEstimate'],
+                'LossMax': appetite_data['LossMax']
             }
             monte_carlo_data = generate_sim_data(rdata)
-            plot_loss_exceedance_curve(appetite_data, monte_carlo_data)
 
-    # Carregar catálogos de eventos
+            strength_data = fetch_strength_data()
+            control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
+            proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
+
+            inherent_risk = calculate_inherent_risk(monte_carlo_data, control_gap)
+            residual_risk = calculate_residual_risk(inherent_risk, proposed_control_gap)
+
+            plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk)
+
     df_catalogues = get_catalogues()
     if not df_catalogues.empty:
         events = df_catalogues['ThreatEvent'].tolist()
@@ -187,29 +219,28 @@ def run():
         if st.button("Carregar Dados do Evento e Simular Riscos"):
             event_data = fetch_event_data(selected_event)
             if event_data:
-                rdata = {
-                    'minfreq': float(event_data['FrequencyMin']),
-                    'pertfreq': float(event_data['FrequencyEstimate']),
-                    'maxfreq': float(event_data['FrequencyMax']),
-                    'minloss': float(event_data['LossMin']),
-                    'pertloss': float(event_data['LossEstimate']),
-                    'maxloss': float(event_data['LossMax'])
+                rdata1 = {
+                    'FrequencyMin': float(event_data['FrequencyMin']),
+                    'FrequencyEstimate': float(event_data['FrequencyEstimate']),
+                    'FrequencyMax': float(event_data['FrequencyMax']),
+                    'LossMin': float(event_data['LossMin']),
+                    'LossEstimate': float(event_data['LossEstimate']),
+                    'LossMax': float(event_data['LossMax'])
                 }
-                sim_results = generate_sim_data(rdata)
-                no_of_bins = int(np.ceil(np.sqrt(sims)))
-                freqs, edges = get_histogram_data(sim_results, no_of_bins)
-                bins = edges[:-1]
+                sim_results1 = generate_sim_data(rdata1)
 
-                # Histograma com linha de Pareto
-                fig1 = go.Figure()
-                fig1.add_trace(go.Bar(x=bins, y=freqs, name='Histograma'))
-                fig1.add_trace(go.Scatter(x=bins, y=np.cumsum(freqs) / sum(freqs), name='Pareto', mode='lines+markers',
-                                          yaxis='y2'))
-                fig1.update_layout(title='Histograma de Riscos Agregados com Linha de Pareto',
-                                   xaxis_title='Perda', yaxis_title='Frequência',
-                                   yaxis2=dict(overlaying='y', side='right', title='Frequência Acumulada'))
+                rdata2 = {
+                    'FrequencyMin': float(event_data['FrequencyMin']) * 0.8,
+                    'FrequencyEstimate': float(event_data['FrequencyEstimate']) * 0.8,
+                    'FrequencyMax': float(event_data['FrequencyMax']) * 0.8,
+                    'LossMin': float(event_data['LossMin']) * 0.8,
+                    'LossEstimate': float(event_data['LossEstimate']) * 0.8,
+                    'LossMax': float(event_data['LossMax']) * 0.8
+                }
+                sim_results2 = generate_sim_data(rdata2)
 
-                st.plotly_chart(fig1)
+                plot_simulation_lines(sim_results1, sim_results2, "Simulation Results for " + selected_event)
 
     else:
         st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+

@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import requests
 
-# Function to get threat data from the API
+
 def get_threat_data():
     response = requests.get("http://3.142.77.137:8080/api/all-frequency")
     if response.status_code == 200:
@@ -11,7 +11,7 @@ def get_threat_data():
         st.error("Falha ao obter dados de ameaças")
         return pd.DataFrame()
 
-# Function to update threat data in the API
+
 def update_threat_data(data, id):
     response = requests.put(f"http://3.142.77.137:8080/api/frequency/{id}", json=data)
     if response.status_code == 200:
@@ -19,10 +19,10 @@ def update_threat_data(data, id):
     else:
         st.error("Falha ao atualizar dados")
 
+
 def run():
     st.subheader('Análise de frequência de eventos de ameaça')
 
-    # Retrieve threat data from the API
     threat_data = get_threat_data()
 
     if not threat_data.empty:
@@ -46,9 +46,9 @@ def run():
                 f_max = st.number_input(f"Frequência Máxima ({row['Evento de ameaça']})",
                                         value=row['Frequência máxima'], key=f"max{idx}")
                 f_moda = st.number_input(f"Frequência Mais Comum (Moda) ({row['Evento de ameaça']})",
-                                        value=row['Frequência mais comum (moda)'], key=f"moda{idx}")
+                                         value=row['Frequência mais comum (moda)'], key=f"moda{idx}")
                 supp_info = st.text_area(f"Informação de Suporte ({row['Evento de ameaça']})",
-                                        value=row['Informação de suporte'], key=f"supp{idx}")
+                                         value=row['Informação de suporte'], key=f"supp{idx}")
                 if st.button(f"Atualizar {row['Evento de ameaça']}", key=f"update{idx}"):
                     st.session_state.freq_data.at[idx, 'Frequência mínima'] = f_min
                     st.session_state.freq_data.at[idx, 'Frequência máxima'] = f_max
