@@ -8,15 +8,18 @@ from scipy.stats import lognorm
 sims = 10000
 STDEV = 3.29
 
+
 def lognorminvpert(min_val, pert, max_val):
     mean = np.log(pert)
     sigma = (np.log(max_val) - np.log(min_val)) / STDEV
     return lognorm.ppf(np.random.rand(), s=sigma, scale=np.exp(mean))
 
+
 def lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
     freq = lognorminvpert(minfreq, pertfreq, maxfreq)
     loss = lognorminvpert(minloss, pertloss, maxloss)
     return freq * loss
+
 
 def generate_sim_data(rdata):
     sim_data = np.zeros(sims)
@@ -27,9 +30,11 @@ def generate_sim_data(rdata):
         )
     return sim_data
 
+
 def get_histogram_data(values, bins):
     freqs, edges = np.histogram(values, bins=bins)
     return freqs, edges
+
 
 def get_catalogues():
     url = 'http://3.142.77.137:8080/api/all-catalogue'
@@ -44,6 +49,7 @@ def get_catalogues():
     else:
         st.error(f'Erro ao recuperar catálogos: {response.status_code}')
     return pd.DataFrame()
+
 
 def fetch_event_data(event_name):
     url = f'http://3.142.77.137:8080/simulation'
@@ -63,6 +69,7 @@ def fetch_event_data(event_name):
         st.error('Falha ao recuperar dados do evento.')
         return None
 
+
 def fetch_aggregated_data():
     url = "http://3.142.77.137:8080/simulation-aggregated"
     response = requests.get(url, headers={'accept': 'application/json'})
@@ -71,6 +78,7 @@ def fetch_aggregated_data():
     else:
         st.error(f"Erro ao buscar dados agregados: {response.status_code}")
         return None
+
 
 def fetch_appetite_data():
     url = "http://3.142.77.137:8080/simulation-appetite"
@@ -81,6 +89,7 @@ def fetch_appetite_data():
         st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
         return None
 
+
 def fetch_strength_data():
     url = "http://3.142.77.137:8080/api/all-strength"
     response = requests.get(url, headers={'accept': 'application/json'})
@@ -90,19 +99,23 @@ def fetch_strength_data():
         st.error(f"Erro ao buscar dados da API: {response.status_code}")
         return []
 
+
 def safe_float_conversion(value, default=1.0):
     try:
         return float(value.strip('%')) / 100
     except (ValueError, AttributeError):
         return default
 
+
 def calculate_inherent_risk(monte_carlo_data, control_gap):
     control_gap = safe_float_conversion(control_gap)
     return monte_carlo_data / control_gap
 
+
 def calculate_residual_risk(inherent_risk, proposed_control_gap):
     proposed_control_gap = safe_float_conversion(proposed_control_gap)
     return inherent_risk / proposed_control_gap
+
 
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
     risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
@@ -123,7 +136,8 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
 
     fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
 
-    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
+    fig.add_trace(
+        go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
 
     fig.update_layout(
         title='Loss Exceedance Curve',
@@ -138,6 +152,7 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
     )
 
     st.plotly_chart(fig)
+
 
 def plot_simulation_lines(sim_results1, sim_results2, title):
     freqs1, edges1 = get_histogram_data(sim_results1, bins=50)
@@ -159,6 +174,7 @@ def plot_simulation_lines(sim_results1, sim_results2, title):
     )
 
     st.plotly_chart(fig)
+
 
 def run():
     st.title("Relatorio")
@@ -242,5 +258,5 @@ def run():
                 plot_simulation_lines(sim_results1, sim_results2, "Simulation Results for " + selected_event)
 
     else:
-        st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
-
+        st.error(
+            "Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
