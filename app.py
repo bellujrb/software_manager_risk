@@ -3,6 +3,7 @@ import streamlit as st
 # Importação dos módulos de cada página
 import control_library
 import control_strength
+import granular
 import implementation
 import inventory_assets
 import loss_appoach
@@ -54,7 +55,7 @@ def main():
     elif st.session_state['loss_mode'] == "high_loss":
         pages.insert(index, ("Perda Alta", loss_high.run))
     elif st.session_state['loss_mode'] == "granular":
-        pages.insert(index, ("Granular", risk_analysis.run))
+        pages.insert(index, ("Granular", granular.run))
 
     # Transformar lista de páginas em dicionário para o radio
     pages_dict = dict(pages)
