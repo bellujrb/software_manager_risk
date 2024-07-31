@@ -6,8 +6,9 @@ def get_loss_high():
     url = 'http://3.142.77.137:8080/api/losshigh-singular'
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
+        response.raise_for_status()  # Levanta uma exceção para respostas com erro (4xx e 5xx)
         json_response = response.json()
+
         if 'Response' in json_response and json_response['Response']:
             df = pd.DataFrame(json_response['Response'])
             if 'losses' in df.columns:
@@ -29,28 +30,32 @@ def get_loss_high():
         return pd.DataFrame()
 
 def run():
-    st.title('Estimado Unico')
+    st.title('Estimado Único')
 
-    if 'loss_data' not in st.session_state:
-        st.session_state.loss_data = get_loss_high()
+    loss_data = get_loss_high()
 
-    if st.session_state.loss_data.empty:
+    if loss_data.empty:
         st.error('Não há dados de perdas disponíveis.')
         return
 
-    df = st.session_state.loss_data
-
-    df.rename(columns={
+    loss_data.rename(columns={
         'threat_event_id': 'ID do Evento de Ameaça',
         'threat_event': 'Evento de Ameaça',
         'assets': 'Ativo(s)',
+        'loss_type': 'Tipo de Perda',
         'minimum_loss': 'Perda Mínima',
         'maximum_loss': 'Perda Máxima',
         'most_likely_loss': 'Perda Mais Provável'
     }, inplace=True)
 
-    st.write("Tabela de Perdas:")
-    st.dataframe(df)
+    st.write("Selecione uma categoria para visualizar os ataques:")
 
-if __name__ == '__main__':
-    run()
+    unique_events = loss_data['Evento de Ameaça'].unique()
+
+    for event in unique_events:
+        with st.expander(event):
+            event_df = loss_data[loss_data['Evento de Ameaça'] == event]
+            st.write(f"Tabela de Perdas para {event}:")
+            st.dataframe(event_df)
+
+run()

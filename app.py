@@ -19,7 +19,6 @@ import risk_analysis
 import single_estimate
 import target
 
-
 def main():
     st.title('Sistema de Gerenciamento de Eventos de Ameaça e Ativos')
 
@@ -46,28 +45,23 @@ def main():
         ("Relatório", report.run)
     ]
 
-    # Encontrar a posição correta para inserir as novas páginas
     index = next((i for i, (title, _) in enumerate(pages) if title == "LossAppoach"), None) + 1
 
-    # Inserir páginas dinamicamente baseadas no 'loss_mode'
-    if st.session_state['loss_mode'] == "single_estimate":
+    if st.session_state['loss_mode'] == "Singular":
         pages.insert(index, ("Estimativa Única", single_estimate.run))
-    elif st.session_state['loss_mode'] == "high_loss":
+    elif st.session_state['loss_mode'] == "LossHigh":
         pages.insert(index, ("Perda Alta", loss_high.run))
-    elif st.session_state['loss_mode'] == "granular":
+    elif st.session_state['loss_mode'] == "Granular":
         pages.insert(index, ("Granular", granular.run))
 
-    # Transformar lista de páginas em dicionário para o radio
     pages_dict = dict(pages)
 
-    # Seleção da página na sidebar
     selection = st.sidebar.radio("Ir para", list(pages_dict.keys()))
 
     # Executar a função da página selecionada
     page_function = pages_dict.get(selection)
     if page_function:
         page_function()
-
 
 if __name__ == "__main__":
     main()

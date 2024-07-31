@@ -10,7 +10,6 @@ def get_control_data():
         json_response = response.json()
         if 'Response' in json_response and json_response['Response']:
             df = pd.DataFrame(json_response['Response'])
-            st.write("Colunas originais:", df.columns.tolist())
             return df
         else:
             st.error('Recebido JSON vazio ou sem chave \'Response\'.')

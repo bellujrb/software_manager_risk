@@ -57,9 +57,13 @@ def get_catalogues():
     return pd.DataFrame()
 
 
-def fetch_event_data(event_name):
+def fetch_event_data(event_name, loss_type):
     url = f'http://3.142.77.137:8080/simulation'
-    headers = {'Content-Type': 'application/json', 'ThreatEvent': event_name}
+    headers = {
+        'Content-Type': 'application/json',
+        'ThreatEvent': event_name,
+        'Loss': loss_type  # Aqui você adiciona o tipo de perda no cabeçalho
+    }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
         json_data = response.json()
@@ -76,9 +80,12 @@ def fetch_event_data(event_name):
         return None
 
 
-def fetch_aggregated_data():
-    url = "http://3.142.77.137:8080/simulation-aggregated"
-    response = requests.get(url, headers={'accept': 'application/json'})
+def fetch_aggregated_data(loss_type):
+    headers = {
+        'Content-Type': 'application/json',
+        'Loss': loss_type  # Aqui você adiciona o tipo de perda no cabeçalho
+    }
+    response = requests.get("http://3.142.77.137:8080/simulation-aggregated", headers=headers)
     if response.status_code == 200:
         return response.json()
     else:
@@ -86,9 +93,12 @@ def fetch_aggregated_data():
         return None
 
 
-def fetch_appetite_data():
+def fetch_appetite_data(loss_type):
     url = "http://3.142.77.137:8080/simulation-appetite"
-    response = requests.get(url, headers={'accept': 'application/json'})
+    response = requests.get(url, headers={
+        'accept': 'application/json',
+        'Loss': loss_type
+    })
     if response.status_code == 200:
         return response.json()
     else:
@@ -135,7 +145,7 @@ def run():
 
     if chart_type == "Histograma Agregado":
         if st.button("Gerar Dados"):
-            aggregated_data = fetch_aggregated_data()
+            aggregated_data = fetch_aggregated_data(loss_type="Granular")
             if aggregated_data:
                 rdata = {
                     'minfreq': 1,
@@ -162,7 +172,7 @@ def run():
                 st.plotly_chart(fig1)
 
     elif chart_type == "Curva de Excedência de Perda":
-        appetite_data = fetch_appetite_data()
+        appetite_data = fetch_appetite_data(loss_type="Granular")
         if appetite_data and "LossExceedance" in appetite_data:
             rdata = {
                 'minfreq': 1,
@@ -181,7 +191,7 @@ def run():
         selected_event = st.selectbox("Selecione o Evento de Ameaça", options=events)
 
         if st.button("Carregar Dados do Evento e Simular Riscos"):
-            event_data = fetch_event_data(selected_event)
+            event_data = fetch_event_data(selected_event, "Granular")
             if event_data:
                 rdata = {
                     'minfreq': float(event_data['FrequencyMin']),
