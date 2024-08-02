@@ -15,7 +15,7 @@ def lognorminvpert(min_val, pert, max_val):
     return lognorm.ppf(np.random.rand(), s=sigma, scale=np.exp(mean))
 
 
-def lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
+def     lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
     freq = lognorminvpert(minfreq, pertfreq, maxfreq)
     loss = lognorminvpert(minloss, pertloss, maxloss)
     return freq * loss
@@ -137,18 +137,28 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
     fig = go.Figure()
 
     fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite', line=dict(color='blue')))
-
     fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
+    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
 
-    fig.add_trace(
-        go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
+    # Corrigindo a obtenção do máximo valor no eixo x
+    max_value = max(max(lec_x), max(lec_x_residual), max(losses))
+
+    tick_step = round(max_value / 5, 2)  # Define o número de ticks no eixo x
 
     fig.update_layout(
         title='Loss Exceedance Curve',
         xaxis_title='Loss (millions)',
         yaxis_title='Probability (%)',
-        xaxis=dict(tickmode='array', tickvals=np.arange(0, max(lec_x), step=10), range=[0, max(lec_x)]),
-        yaxis=dict(tickmode='array', tickvals=np.arange(0, 101, step=10), range=[0, 100]),
+        xaxis=dict(
+            tickmode='array',
+            tickvals=np.arange(0, max_value + tick_step, tick_step),  # Gera um array de valores para os ticks
+            tickformat=".2f"  # Formata os números para duas casas decimais
+        ),
+        yaxis=dict(
+            tickmode='array',
+            tickvals=np.arange(0, 101, step=10),
+            range=[0, 100]
+        ),
         legend=dict(x=0.01, y=0.99, borderwidth=1),
         plot_bgcolor='rgb(17,17,17)',
         paper_bgcolor='rgb(17,17,17)',
@@ -156,6 +166,8 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
     )
 
     st.plotly_chart(fig)
+
+
 
 
 def plot_simulation_lines(sim_results1, sim_results2, title):
@@ -190,12 +202,12 @@ def run():
             aggregated_data = fetch_aggregated_data(loss_type="Granular")
             if aggregated_data:
                 rdata = {
-                    'FrequencyMin': 1,
-                    'FrequencyEstimate': 1.5,
-                    'FrequencyMax': 2,
-                    'LossMin': aggregated_data['LossMin'],
-                    'LossEstimate': aggregated_data['LossEstimate'],
-                    'LossMax': aggregated_data['LossMax']
+                    'FrequencyMin': float(aggregated_data['FrequencyMin']),
+                    'FrequencyEstimate': float(aggregated_data['FrequencyEstimate']),
+                    'FrequencyMax': float(aggregated_data['FrequencyMax']),
+                    'LossMin': float(aggregated_data['LossMin']),
+                    'LossEstimate': float(aggregated_data['LossEstimate']),
+                    'LossMax': float(aggregated_data['LossMax'])
                 }
                 sim_results = generate_sim_data(rdata)
 

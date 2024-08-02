@@ -1,6 +1,5 @@
 import streamlit as st
 
-# Importação dos módulos de cada página
 import control_library
 import control_strength
 import granular
@@ -19,6 +18,7 @@ import risk_analysis
 import single_estimate
 import target
 
+
 def main():
     st.title('Sistema de Gerenciamento de Eventos de Ameaça e Ativos')
 
@@ -27,41 +27,40 @@ def main():
 
     st.sidebar.title("Navegação")
 
-    # Configuração inicial das páginas
     pages = [
         ("Ambiente Alvo", target.run),
         ("Inventário de Ativos", inventory_assets.run),
         ("Catálogo de Ameaça", inventory_threat.run),
         ("Frequência", frequency.run),
         ("Linkar Eventos e Ativos", link_threat.run),
-        ("LossAppoach", loss_appoach.run),
+        ("Abordagem de Perda", loss_appoach.run),
         ("Cálculo de Risco", risk_calculation.run),
         ("Análise de Risco", risk_analysis.run),
         ("Biblioteca de Controles", control_library.run),
         ("Relevância", relevance.run),
         ("Implementação", implementation.run),
-        ("Força de controle", control_strength.run),
-        ("Força de controle Proposta", proposed_strength.run),
+        ("Força de Controle", control_strength.run),
+        ("Força de Controle Proposta", proposed_strength.run),
         ("Relatório", report.run)
     ]
 
-    index = next((i for i, (title, _) in enumerate(pages) if title == "LossAppoach"), None) + 1
+    index = next((i for i, (title, _) in enumerate(pages) if title == "Abordagem de Perda"), None) + 1
 
     if st.session_state['loss_mode'] == "Singular":
-        pages.insert(index, ("Estimativa Única", single_estimate.run))
+        pages.insert(index, ("Estimativa Única (R$)", single_estimate.run))
     elif st.session_state['loss_mode'] == "LossHigh":
-        pages.insert(index, ("Perda Alta", loss_high.run))
+        pages.insert(index, ("Perda Alta (R$)", loss_high.run))
     elif st.session_state['loss_mode'] == "Granular":
-        pages.insert(index, ("Granular", granular.run))
+        pages.insert(index, ("Granular (R$)", granular.run))
 
     pages_dict = dict(pages)
 
     selection = st.sidebar.radio("Ir para", list(pages_dict.keys()))
 
-    # Executar a função da página selecionada
     page_function = pages_dict.get(selection)
     if page_function:
         page_function()
+
 
 if __name__ == "__main__":
     main()

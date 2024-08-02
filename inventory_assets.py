@@ -2,7 +2,10 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
+import locale
 
+# Configurando locale para exibir os valores monetários em reais
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def post_asset(data):
     url = 'http://3.142.77.137:8080/api/create-asset'
@@ -10,6 +13,8 @@ def post_asset(data):
     response = requests.post(url, headers=headers, data=json.dumps(data))
     return response
 
+def format_currency(value):
+    return locale.currency(value, grouping=True)
 
 def run():
     st.title('Inventário de Assets')
@@ -42,8 +47,8 @@ def run():
         descricao = st.text_area("Descrição")
         local = st.text_input("Local")
         responsavel = st.text_input("Responsável")
-        valor_negocio = st.number_input("Valor para o negócio", min_value=0.0, format='%f')
-        custo_reposicao = st.number_input("Custo de reposição", min_value=0.0, format='%f')
+        valor_negocio = st.number_input("Valor para o negócio (R$)", min_value=0.0, format='%f')
+        custo_reposicao = st.number_input("Custo de reposição (R$)", min_value=0.0, format='%f')
         criticidade = st.selectbox("Criticidade", ['Alta', 'Média', 'Baixa'])
         usuarios = st.text_input("Usuários")
         ambiente_alvo = st.text_input("Ambiente Alvo")
@@ -64,14 +69,15 @@ def run():
             response = post_asset(new_asset)
             if response.status_code == 200:
                 st.success("Asset registrado com sucesso!")
+                new_asset['business_value'] = valor_negocio
+                new_asset['replacement_cost'] = custo_reposicao
                 st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_asset])], ignore_index=True)
-                st.session_state.data.columns = [
-                    'ID', 'Nome', 'Descrição', 'Local', 'Responsável',
-                    'Valor para o Negócio', 'Custo de Reposição', 'Criticidade',
-                    'Usuários', 'Ambiente Alvo'
-                ]
             else:
                 st.error(f"Falha ao registrar o asset: {response.status_code} - {response.text}")
+
+    # Formatar os valores monetários no DataFrame
+    st.session_state.data['Valor para o Negócio'] = st.session_state.data['Valor para o Negócio'].apply(format_currency)
+    st.session_state.data['Custo de Reposição'] = st.session_state.data['Custo de Reposição'].apply(format_currency)
 
     st.write("Inventário de Assets Registrados:")
     st.write(st.session_state.data)

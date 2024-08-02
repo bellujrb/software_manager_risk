@@ -1,9 +1,15 @@
 import streamlit as st
 import pandas as pd
+import locale
 
+# Configurando locale para exibir os valores monetários em reais
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
 def run():
     st.title("Avaliação de Risco Corporativo")
+
+    def format_currency(value):
+        return locale.currency(value, grouping=True)
 
     with st.form("general_info"):
         st.subheader("Geral")
@@ -27,10 +33,10 @@ def run():
         col1, col2, col3 = st.columns(3)
         with col1:
             target_environment = st.text_input("Ambiente-alvo", value="Capitalização")
-            annual_turnover = st.text_input("Faturamento anual", value="9134000000")
+            annual_turnover = st.text_input("Faturamento anual", value=format_currency(9134000000))
         with col2:
-            profit = st.text_input("Lucro", value="732405000")
-            share_price = st.text_input("Valor da ação", value="12.51")
+            profit = st.text_input("Lucro", value=format_currency(732405000))
+            share_price = st.text_input("Valor da ação", value=format_currency(12.51))
         with col3:
             industry_sector = st.text_input("Setor da indústria", value="Health Care and Social Assistance")
             geographic_region = st.text_input("Região geográfica", value="South America")
@@ -40,7 +46,6 @@ def run():
         submitted_org = st.form_submit_button("Salvar Perfil Organizacional")
         if submitted_org:
             st.success("Perfil Organizacional Salvo!")
-
 
 if __name__ == "__main__":
     run()

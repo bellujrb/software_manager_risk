@@ -123,13 +123,26 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
     fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Risco Agregado',
                              line=dict(color='red', width=2)))
 
+    # Determina os valores do eixo x, com intervalos maiores se necessário
+    max_value = max(lec_x)
+    tick_step = max_value / 5  # Ajusta aqui para controlar a densidade dos ticks
+
     fig.update_layout(
         title='Curva de Excedência de Perda',
         xaxis_title='Perda (milhões)',
         yaxis_title='Probabilidade(%)',
-        xaxis=dict(type='linear', tickmode='array', tickvals=list(range(0, int(max(lec_x)) + 2, 2))),
-        yaxis=dict(tickmode='array', tickvals=[i for i in range(0, 101, 10)],
-                   showgrid=True, gridcolor='gray'),
+        xaxis=dict(
+            type='linear',
+            tickmode='array',
+            tickvals=[i for i in np.arange(0, max_value + tick_step, tick_step)]
+            # Cria um intervalo de ticks personalizado
+        ),
+        yaxis=dict(
+            tickmode='array',
+            tickvals=[i for i in range(0, 101, 10)],
+            showgrid=True,
+            gridcolor='gray'
+        ),
         plot_bgcolor='rgba(0,0,0,0)',
         paper_bgcolor='rgba(0,0,0,0)',
         font=dict(size=12, color='black'),
@@ -148,12 +161,12 @@ def run():
             aggregated_data = fetch_aggregated_data(loss_type="Granular")
             if aggregated_data:
                 rdata = {
-                    'minfreq': 1,
-                    'pertfreq': 1.5,
-                    'maxfreq': 2,
-                    'minloss': aggregated_data['LossMin'],
-                    'pertloss': aggregated_data['LossEstimate'],
-                    'maxloss': aggregated_data['LossMax']
+                    'minfreq': float(aggregated_data['FrequencyMin']),
+                    'pertfreq': float(aggregated_data['FrequencyEstimate']),
+                    'maxfreq': float(aggregated_data['FrequencyMax']),
+                    'minloss': float(aggregated_data['LossMin']),
+                    'pertloss': float(aggregated_data['LossEstimate']),
+                    'maxloss': float(aggregated_data['LossMax'])
                 }
                 sim_results = generate_sim_data(rdata)
                 no_of_bins = int(np.ceil(np.sqrt(sims)))
@@ -175,9 +188,9 @@ def run():
         appetite_data = fetch_appetite_data(loss_type="Granular")
         if appetite_data and "LossExceedance" in appetite_data:
             rdata = {
-                'minfreq': 1,
-                'pertfreq': 1.5,
-                'maxfreq': 2,
+                'minfreq': float(appetite_data['FrequencyMin']),
+                'pertfreq': float(appetite_data['FrequencyEstimate']),
+                'maxfreq': float(appetite_data['FrequencyMax']),
                 'minloss': appetite_data['LossMin'],
                 'pertloss': appetite_data['LossEstimate'],
                 'maxloss': appetite_data['LossMax']
