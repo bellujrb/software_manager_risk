@@ -3,10 +3,10 @@ import pandas as pd
 import requests
 import json
 import locale
-
-# Configurando locale para exibir os valores monetários em reais
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
+try:
+    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
+except locale.Error:
+    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
 def post_asset(data):
     url = 'http://3.142.77.137:8080/api/create-asset'
     headers = {'Content-Type': 'application/json'}
