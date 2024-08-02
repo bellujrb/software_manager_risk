@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import requests
 import json
-import locale
 
 def post_asset(data):
     url = 'http://3.142.77.137:8080/api/create-asset'
@@ -11,7 +10,7 @@ def post_asset(data):
     return response
 
 def format_currency(value):
-    return locale.currency(value, grouping=True)
+    return f"R$ {value:.2f}"
 
 def run():
     st.title('Inventário de Assets')
