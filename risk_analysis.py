@@ -8,18 +8,15 @@ import pandas as pd
 sims = 10000
 STDEV = 3.29
 
-
 def lognorminvpert(min_val, pert, max_val):
     mean = np.log(pert)
     sigma = (np.log(max_val) - np.log(min_val)) / STDEV
     return lognorm.ppf(np.random.rand(), s=sigma, scale=np.exp(mean))
 
-
 def lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
     freq = lognorminvpert(minfreq, pertfreq, maxfreq)
     loss = lognorminvpert(minloss, pertloss, maxloss)
     return freq * loss
-
 
 def generate_sim_data(rdata):
     sim_data = np.zeros(sims)
@@ -30,17 +27,13 @@ def generate_sim_data(rdata):
         )
     return sim_data
 
-
 def get_histogram_data(values, bins):
+    values = np.array(values)
+    if len(values) == 0 or np.any(np.isnan(values)):
+        st.error("Os dados de simulação contêm valores inválidos.")
+        return np.array([]), np.array([])
     freqs, edges = np.histogram(values, bins=bins)
     return freqs, edges
-
-
-def get_lecs(freqs, edges):
-    cumulative_freqs = np.cumsum(freqs)
-    lecs = (len(freqs) - cumulative_freqs + freqs) / len(freqs)
-    return edges[:-1], lecs
-
 
 def get_catalogues():
     url = 'http://3.142.77.137:8080/api/all-catalogue'
@@ -56,13 +49,12 @@ def get_catalogues():
         st.error(f'Erro ao recuperar catálogos: {response.status_code}')
     return pd.DataFrame()
 
-
 def fetch_event_data(event_name, loss_type):
     url = f'http://3.142.77.137:8080/simulation'
     headers = {
         'Content-Type': 'application/json',
         'ThreatEvent': event_name,
-        'Loss': loss_type  # Aqui você adiciona o tipo de perda no cabeçalho
+        'Loss': loss_type
     }
     response = requests.get(url, headers=headers)
     if response.status_code == 200:
@@ -79,11 +71,10 @@ def fetch_event_data(event_name, loss_type):
         st.error('Falha ao recuperar dados do evento.')
         return None
 
-
 def fetch_aggregated_data(loss_type):
     headers = {
         'Content-Type': 'application/json',
-        'Loss': loss_type  # Aqui você adiciona o tipo de perda no cabeçalho
+        'Loss': loss_type
     }
     response = requests.get("http://3.142.77.137:8080/simulation-aggregated", headers=headers)
     if response.status_code == 200:
@@ -91,7 +82,6 @@ def fetch_aggregated_data(loss_type):
     else:
         st.error(f"Erro ao buscar dados agregados: {response.status_code}")
         return None
-
 
 def fetch_appetite_data(loss_type):
     url = "http://3.142.77.137:8080/simulation-appetite"
@@ -105,13 +95,16 @@ def fetch_appetite_data(loss_type):
         st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
         return None
 
-
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
     risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
     losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
 
     no_of_bins = int(np.ceil(np.sqrt(sims)))
     freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
+    if len(freqs) == 0 or len(edges) == 0:
+        st.error("Erro ao gerar dados do histograma.")
+        return
+
     lec_x = edges[:-1] / 1e6
     lec_y = (100 - (np.cumsum(freqs) / sims * 100))
 
@@ -123,9 +116,8 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
     fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Risco Agregado',
                              line=dict(color='red', width=2)))
 
-    # Determina os valores do eixo x, com intervalos maiores se necessário
     max_value = max(lec_x)
-    tick_step = max_value / 5  # Ajusta aqui para controlar a densidade dos ticks
+    tick_step = max_value / 5
 
     fig.update_layout(
         title='Curva de Excedência de Perda',
@@ -135,7 +127,6 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
             type='linear',
             tickmode='array',
             tickvals=[i for i in np.arange(0, max_value + tick_step, tick_step)]
-            # Cria um intervalo de ticks personalizado
         ),
         yaxis=dict(
             tickmode='array',
@@ -149,7 +140,6 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
         legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')
     )
     st.plotly_chart(fig)
-
 
 def run():
     st.title("Análise de Risco")
@@ -171,6 +161,9 @@ def run():
                 sim_results = generate_sim_data(rdata)
                 no_of_bins = int(np.ceil(np.sqrt(sims)))
                 freqs, edges = get_histogram_data(sim_results, no_of_bins)
+                if len(freqs) == 0 or len(edges) == 0:
+                    st.error("Erro ao gerar dados do histograma.")
+                    return
                 bins = edges[:-1]
 
                 fig1 = go.Figure()
@@ -191,9 +184,9 @@ def run():
                 'minfreq': float(appetite_data['FrequencyMin']),
                 'pertfreq': float(appetite_data['FrequencyEstimate']),
                 'maxfreq': float(appetite_data['FrequencyMax']),
-                'minloss': appetite_data['LossMin'],
-                'pertloss': appetite_data['LossEstimate'],
-                'maxloss': appetite_data['LossMax']
+                'minloss': float(appetite_data['LossMin']),
+                'pertloss': float(appetite_data['LossEstimate']),
+                'maxloss': float(appetite_data['LossMax'])
             }
             monte_carlo_data = generate_sim_data(rdata)
             plot_loss_exceedance_curve(appetite_data, monte_carlo_data)
@@ -217,6 +210,9 @@ def run():
                 sim_results = generate_sim_data(rdata)
                 no_of_bins = int(np.ceil(np.sqrt(sims)))
                 freqs, edges = get_histogram_data(sim_results, no_of_bins)
+                if len(freqs) == 0 or len(edges) == 0:
+                    st.error("Erro ao gerar dados do histograma.")
+                    return
                 bins = edges[:-1]
 
                 fig1 = go.Figure()
