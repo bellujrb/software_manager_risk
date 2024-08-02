@@ -15,7 +15,7 @@ def lognorminvpert(min_val, pert, max_val):
     return lognorm.ppf(np.random.rand(), s=sigma, scale=np.exp(mean))
 
 
-def     lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
+def lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
     freq = lognorminvpert(minfreq, pertfreq, maxfreq)
     loss = lognorminvpert(minloss, pertloss, maxloss)
     return freq * loss
