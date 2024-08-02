@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import locale
 
-# Configurando locale para exibir os valores monetários em reais
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
 def run():
     st.title("Avaliação de Risco Corporativo")
 
