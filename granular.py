@@ -4,11 +4,6 @@ import requests
 import json
 import locale
 
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except locale.Error:
-    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
-
 def get_loss_high():
     url = 'http://3.142.77.137:8080/api/losshigh-granuled'
     response = requests.get(url)

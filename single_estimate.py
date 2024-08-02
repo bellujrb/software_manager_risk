@@ -1,12 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-import locale
-
-try:
-    locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-except locale.Error:
-    locale.setlocale(locale.LC_ALL, 'C.UTF-8')
 
 def get_loss_high():
     url = 'http://3.142.77.137:8080/api/losshigh-singular'
@@ -35,12 +29,6 @@ def get_loss_high():
         st.error(f'Erro ao recuperar dados de perdas: {err}')
         return pd.DataFrame()
 
-def format_currency(value):
-    try:
-        return locale.currency(value, grouping=True)
-    except:
-        return value
-
 def run():
     st.title('Estimado Único')
 
@@ -60,10 +48,9 @@ def run():
         'most_likely_loss': 'Perda Mais Provável'
     }, inplace=True)
 
-    # Formatar os valores monetários no DataFrame para exibição
-    loss_data['Perda Mínima'] = loss_data['Perda Mínima'].apply(format_currency)
-    loss_data['Perda Máxima'] = loss_data['Perda Máxima'].apply(format_currency)
-    loss_data['Perda Mais Provável'] = loss_data['Perda Mais Provável'].apply(format_currency)
+    loss_data['Perda Mínima'] = loss_data['Perda Mínima'].apply(lambda x: f"R$ {x}")
+    loss_data['Perda Máxima'] = loss_data['Perda Máxima'].apply(lambda x: f"R$ {x}")
+    loss_data['Perda Mais Provável'] = loss_data['Perda Mais Provável'].apply(lambda x: f"R$ {x}")
 
     st.write("Selecione uma categoria para visualizar os ataques:")
 
@@ -75,5 +62,4 @@ def run():
             st.write(f"Tabela de Perdas para {event}:")
             st.dataframe(event_df)
 
-if __name__ == "__main__":
-    run()
+run()
