@@ -10,6 +10,8 @@ def post_asset(data):
     return response
 
 def format_currency(value):
+    if isinstance(value, str) and value.startswith("R$"):
+        return value
     return f"R$ {value:.2f}"
 
 def run():
@@ -65,8 +67,6 @@ def run():
             response = post_asset(new_asset)
             if response.status_code == 200:
                 st.success("Asset registrado com sucesso!")
-                new_asset['business_value'] = valor_negocio
-                new_asset['replacement_cost'] = custo_reposicao
                 st.session_state.data = pd.concat([st.session_state.data, pd.DataFrame([new_asset])], ignore_index=True)
             else:
                 st.error(f"Falha ao registrar o asset: {response.status_code} - {response.text}")
@@ -77,3 +77,6 @@ def run():
 
     st.write("Inventário de Assets Registrados:")
     st.write(st.session_state.data)
+
+if __name__ == "__main__":
+    run()
