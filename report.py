@@ -138,12 +138,10 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
 
     fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite', line=dict(color='blue')))
     fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='white')))
+    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='green')))
 
-    # Corrigindo a obtenção do máximo valor no eixo x
     max_value = max(max(lec_x), max(lec_x_residual), max(losses))
-
-    tick_step = round(max_value / 5, 2)  # Define o número de ticks no eixo x
+    tick_step = round(max_value / 5, 2)
 
     fig.update_layout(
         title='Loss Exceedance Curve',
@@ -151,8 +149,8 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
         yaxis_title='Probability (%)',
         xaxis=dict(
             tickmode='array',
-            tickvals=np.arange(0, max_value + tick_step, tick_step),  # Gera um array de valores para os ticks
-            tickformat=".2f"  # Formata os números para duas casas decimais
+            tickvals=np.arange(0, max_value + tick_step, tick_step),
+            tickformat=".2f"
         ),
         yaxis=dict(
             tickmode='array',
@@ -160,14 +158,12 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
             range=[0, 100]
         ),
         legend=dict(x=0.01, y=0.99, borderwidth=1),
-        plot_bgcolor='rgb(17,17,17)',
-        paper_bgcolor='rgb(17,17,17)',
-        font=dict(color='white')
+        plot_bgcolor='white',  # Fundo do gráfico
+        paper_bgcolor='white',  # Fundo do papel (área fora do gráfico)
+        font=dict(color='black')
     )
 
     st.plotly_chart(fig)
-
-
 
 
 def plot_simulation_lines(sim_results1, sim_results2, title):
@@ -176,15 +172,15 @@ def plot_simulation_lines(sim_results1, sim_results2, title):
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=edges1[:-1], y=freqs1, mode='lines', name='Aggregated Risk', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=edges2[:-1], y=freqs2, mode='lines', name='Modelled Risk', line=dict(color='white')))
+    fig.add_trace(go.Scatter(x=edges2[:-1], y=freqs2, mode='lines', name='Modelled Risk', line=dict(color='green')))
 
     fig.update_layout(
         title=title,
         xaxis_title='Loss',
         yaxis_title='Count of Simulations',
-        plot_bgcolor='rgb(17,17,17)',
-        paper_bgcolor='rgb(17,17,17)',
-        font=dict(color='white'),
+        plot_bgcolor='white',  # Fundo do gráfico
+        paper_bgcolor='white',  # Fundo do papel (área fora do gráfico)
+        font=dict(color='black'),
         xaxis=dict(showgrid=True, gridcolor='gray'),
         yaxis=dict(showgrid=True, gridcolor='gray')
     )
@@ -193,7 +189,7 @@ def plot_simulation_lines(sim_results1, sim_results2, title):
 
 
 def run():
-    st.title("Relatorio")
+    st.title("Relatório")
 
     chart_type = st.selectbox("Selecione o tipo de gráfico:", ["KDE Plot Agregado", "Curva de Excedência de Perda"])
 
@@ -211,7 +207,6 @@ def run():
                 }
                 sim_results = generate_sim_data(rdata)
 
-                # Buscar control gap e proposed control gap
                 strength_data = fetch_strength_data()
                 control_gap = pd.DataFrame(strength_data).query('controlId == -2')['controlGap'].values[0]
                 proposed_control_gap = pd.DataFrame(strength_data).query('controlId == -1')['controlGap'].values[0]
@@ -274,5 +269,8 @@ def run():
                 plot_simulation_lines(sim_results1, sim_results2, "Simulation Results for " + selected_event)
 
     else:
-        st.error(
-            "Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+        st.error("Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+
+
+if __name__ == "__main__":
+    run()
