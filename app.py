@@ -17,7 +17,6 @@ import frequency
 import risk_analysis
 import single_estimate
 import target
-import test
 
 
 def main():
@@ -61,6 +60,14 @@ def main():
     page_function = pages_dict.get(selection)
     if page_function:
         page_function()
+
+    st.sidebar.title("Sobre")
+    st.sidebar.info(
+        "QIRA ISF é uma ferramenta desenvolvida para fornecer insights. "
+        "Ela oferece análises detalhadas e recursos interativos para ajudar os usuários a tomar decisões informadas.\n"
+        "Para saber mais sobre o projeto e suas funcionalidades, acesse a documentação completa [aqui]("
+        "https://github.com/bellujrb)."
+    )
 
 
 if __name__ == "__main__":
