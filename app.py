@@ -17,6 +17,7 @@ import frequency
 import risk_analysis
 import single_estimate
 import target
+import test
 
 
 def main():
@@ -41,7 +42,7 @@ def main():
         ("Implementação", implementation.run),
         ("Força de Controle", control_strength.run),
         ("Força de Controle Proposta", proposed_strength.run),
-        ("Relatório", report.run)
+        ("Relatório", report.run),
     ]
 
     index = next((i for i, (title, _) in enumerate(pages) if title == "Abordagem de Perda"), None) + 1

@@ -96,7 +96,8 @@ def fetch_appetite_data(loss_type):
         return None
 
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
-    risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
+    # Corrigindo a interpretação dos percentuais de risco
+    risks = [point['risk'] for point in appetite_data["LossExceedance"]]  # Corrigindo aqui
     losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
 
     no_of_bins = int(np.ceil(np.sqrt(sims)))
@@ -106,7 +107,7 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
         return
 
     lec_x = edges[:-1] / 1e6
-    lec_y = (100 - (np.cumsum(freqs) / sims * 100))
+    lec_y = 100 - (np.cumsum(freqs) / sims * 100)  # Ajustando a probabilidade de excedência
 
     fig = go.Figure()
 
@@ -129,8 +130,9 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
             tickvals=[i for i in np.arange(0, max_value + tick_step, tick_step)]
         ),
         yaxis=dict(
+            type='linear',
             tickmode='array',
-            tickvals=[i for i in range(0, 101, 10)],
+            tickvals=list(range(0, 101, 10)),
             showgrid=True,
             gridcolor='gray'
         ),
@@ -140,6 +142,8 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
         legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')
     )
     st.plotly_chart(fig)
+
+
 
 def run():
     st.title("Análise de Risco")

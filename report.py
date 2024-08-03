@@ -122,48 +122,55 @@ def calculate_residual_risk(inherent_risk, proposed_control_gap):
 
 
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data, residual_risk):
-    risks = [100 - float(point['risk'].strip('%')) for point in appetite_data["LossExceedance"]]
-    losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
+    try:
+        # Converte 'risk' para string e remove o símbolo de percentagem antes de converter para float
+        risks = [float(str(point['risk']).strip('%')) for point in appetite_data["LossExceedance"]]
+        losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
 
-    no_of_bins = int(np.ceil(np.sqrt(sims)))
-    freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
-    lec_x = edges[:-1] / 1e6
-    lec_y = (100 - (np.cumsum(freqs) / sims * 100))
+        sims = len(monte_carlo_data)
+        no_of_bins = int(np.ceil(np.sqrt(sims)))
+        freqs, edges = get_histogram_data(monte_carlo_data, no_of_bins)
+        lec_x = edges[:-1] / 1e6
+        lec_y = (100 - (np.cumsum(freqs) / sims * 100))
 
-    freqs_residual, edges_residual = get_histogram_data(residual_risk, no_of_bins)
-    lec_x_residual = edges_residual[:-1] / 1e6
-    lec_y_residual = (100 - (np.cumsum(freqs_residual) / sims * 100))
+        freqs_residual, edges_residual = get_histogram_data(residual_risk, no_of_bins)
+        lec_x_residual = edges_residual[:-1] / 1e6
+        lec_y_residual = (100 - (np.cumsum(freqs_residual) / sims * 100))
 
-    fig = go.Figure()
+        fig = go.Figure()
 
-    fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite', line=dict(color='blue')))
-    fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='green')))
+        fig.add_trace(go.Scatter(x=losses, y=risks, mode='lines+markers', name='Risk Appetite', line=dict(color='blue')))
+        fig.add_trace(go.Scatter(x=lec_x, y=lec_y, mode='lines', name='Aggregated Risk', line=dict(color='red')))
+        fig.add_trace(go.Scatter(x=lec_x_residual, y=lec_y_residual, mode='lines', name='Modelled Risk', line=dict(color='green')))
 
-    max_value = max(max(lec_x), max(lec_x_residual), max(losses))
-    tick_step = round(max_value / 5, 2)
+        max_value = max(max(lec_x), max(lec_x_residual), max(losses))
+        tick_step = round(max_value / 5, 2)
 
-    fig.update_layout(
-        title='Loss Exceedance Curve',
-        xaxis_title='Loss (millions)',
-        yaxis_title='Probability (%)',
-        xaxis=dict(
-            tickmode='array',
-            tickvals=np.arange(0, max_value + tick_step, tick_step),
-            tickformat=".2f"
-        ),
-        yaxis=dict(
-            tickmode='array',
-            tickvals=np.arange(0, 101, step=10),
-            range=[0, 100]
-        ),
-        legend=dict(x=0.01, y=0.99, borderwidth=1),
-        plot_bgcolor='white',  # Fundo do gráfico
-        paper_bgcolor='white',  # Fundo do papel (área fora do gráfico)
-        font=dict(color='black')
-    )
+        fig.update_layout(
+            title='Loss Exceedance Curve',
+            xaxis_title='Loss (millions)',
+            yaxis_title='Probability (%)',
+            xaxis=dict(
+                tickmode='array',
+                tickvals=np.arange(0, max_value + tick_step, tick_step),
+                tickformat=".2f"
+            ),
+            yaxis=dict(
+                tickmode='array',
+                tickvals=np.arange(0, 101, step=10),
+                range=[0, 100]
+            ),
+            legend=dict(x=0.01, y=0.99, borderwidth=1),
+            plot_bgcolor='white',  # Fundo do gráfico
+            paper_bgcolor='white',  # Fundo do papel (área fora do gráfico)
+            font=dict(color='black')
+        )
 
-    st.plotly_chart(fig)
+        st.plotly_chart(fig)
+
+    except Exception as e:
+        st.error(f"Ocorreu um erro ao gerar o gráfico: {e}")
+
 
 
 def plot_simulation_lines(sim_results1, sim_results2, title):
