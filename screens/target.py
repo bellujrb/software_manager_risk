@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 
+
 def run():
     st.title("Avaliação de Risco Corporativo")
 
@@ -35,6 +36,3 @@ def run():
 
     if st.button("Salvar Perfil Organizacional"):
         st.success("Perfil Organizacional Salvo!")
-
-if __name__ == "__main__":
-    run()

@@ -1,52 +1,6 @@
 import streamlit as st
-import pandas as pd
-import requests
 
-
-def update_threat_event(event_id, affected_assets):
-    url = f'http://3.142.77.137:8080/api/event/{event_id}'
-    headers = {'Content-Type': 'application/json'}
-    payload = {
-        "affected_asset": affected_assets
-    }
-    response = requests.put(url, headers=headers, json=payload)
-    return response
-
-
-def get_catalogues():
-    url = 'http://3.142.77.137:8080/api/all-catalogue'
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_response = response.json()
-        if 'Response' in json_response and json_response['Response']:
-            df = pd.DataFrame(json_response['Response'])
-            return df.fillna("")
-        else:
-            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
-    else:
-        st.error(f'Erro ao recuperar catálogos: {response.status_code}')
-    return pd.DataFrame()
-
-
-def get_assets():
-    url = 'http://3.142.77.137:8080/api/assets'
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_response = response.json()
-        if 'Response' in json_response and json_response['Response']:
-            return pd.DataFrame(json_response['Response']).fillna("")
-        else:
-            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
-    else:
-        st.error(f'Erro ao recuperar ativos: {response.status_code}')
-    return pd.DataFrame()
-
-
-def post_catalogue(data):
-    url = 'http://3.142.77.137:8080/api/catalogue'
-    headers = {'Content-Type': 'application/json'}
-    response = requests.post(url, headers=headers, json=data)
-    return response
+from data.inventory_threat_service import get_assets, get_catalogues, post_catalogue
 
 
 def run():
