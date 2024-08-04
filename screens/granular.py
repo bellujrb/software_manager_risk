@@ -1,43 +1,12 @@
 import streamlit as st
-import pandas as pd
-import requests
-import json
-import locale
 
-def get_loss_high():
-    url = 'http://3.142.77.137:8080/api/losshigh-granuled'
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_response = response.json()
-        if 'Response' in json_response and json_response['Response']:
-            df = pd.json_normalize(json_response['Response'], 'Losses', ['ThreatEventID', 'ThreatEvent', 'Assets'])
-            return df
-        else:
-            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
-    else:
-        st.error(f'Erro ao recuperar dados de perdas: {response.status_code}')
-    return pd.DataFrame()
+from data.granular_service import get_granular, update_granular
 
-def update_loss_high(id, data):
-    url = f'http://3.142.77.137:8080/api/update-losshigh-singular/{id}'
-    headers = {'Content-Type': 'application/json'}
-    response = requests.put(url, json=data, headers=headers)
-    if response.status_code == 200:
-        return True
-    else:
-        st.error(f"Erro ao atualizar dados: {response.status_code} - {response.text}")
-        return False
-
-def format_currency(value):
-    try:
-        return locale.currency(value, grouping=True)
-    except:
-        return value
 
 def run():
     st.title('Granular')
 
-    loss_data = get_loss_high()
+    loss_data = get_granular()
 
     if loss_data.empty:
         st.error('Não há dados de perdas disponíveis.')
@@ -62,11 +31,6 @@ def run():
         with st.expander(event):
             event_df = loss_data[loss_data['Evento de Ameaça'] == event].copy()
 
-            # Formatar os valores monetários no DataFrame para exibição
-            event_df['Perda Mínima'] = event_df['Perda Mínima'].apply(format_currency)
-            event_df['Perda Máxima'] = event_df['Perda Máxima'].apply(format_currency)
-            event_df['Perda Mais Provável'] = event_df['Perda Mais Provável'].apply(format_currency)
-
             st.write(f"Tabela de Perdas para {event}:")
             st.dataframe(event_df)
 
@@ -80,7 +44,7 @@ def run():
                     st.write(f"Perda Mais Provável: {row['Perda Mais Provável']}")
                     st.write(f"Evento de Ameaça: {row['Evento de Ameaça']}")
                 else:
-                    original_row = loss_data.loc[index]  # Obtém os dados não formatados para entrada
+                    original_row = loss_data.loc[index]
                     with st.form(f"form_{index}"):
                         st.write(f"Editando a linha {index}")
                         assets = st.text_input("Ativo(s)", value=original_row['Ativo(s)'])
@@ -101,12 +65,10 @@ def run():
                                 "most_likely_loss": most_likely_loss,
                                 "threat_event": threat_event
                             }
-                            st.write(f"Enviando dados: {data}")  # Debugging: Exibir os dados antes de enviar
-                            success = update_loss_high(original_row['ID do Evento de Ameaça'], data)
+                            st.write(f"Enviando dados: {data}")
+                            success = update_granular(original_row['ID do Evento de Ameaça'], data)
                             if success:
                                 st.success("Dados atualizados com sucesso!")
                             else:
                                 st.error("Erro ao atualizar os dados.")
 
-if __name__ == "__main__":
-    run()

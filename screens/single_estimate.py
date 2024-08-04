@@ -2,6 +2,7 @@ import streamlit as st
 
 from data.single_estimate_service import get_single_estimate, update_single_estimate
 
+
 def run():
     st.title('Estimado Único')
     all_data = get_single_estimate()

@@ -1,65 +1,6 @@
 import streamlit as st
-import pandas as pd
-import requests
-import locale
 
-
-def get_loss_high():
-    url = 'http://3.142.77.137:8080/api/losshigh'
-    try:
-        response = requests.get(url)
-        response.raise_for_status()  # Levanta uma exceção para respostas com erro (4xx e 5xx)
-        json_response = response.json()
-
-        if 'Response' in json_response and json_response['Response']:
-            df = pd.DataFrame(json_response['Response'])
-            if 'losses' in df.columns:
-                df = df.explode('losses').reset_index(drop=True)
-                losses_df = df['losses'].apply(pd.Series)
-                df = pd.concat([df.drop(columns=['losses']), losses_df], axis=1)
-                return df
-            else:
-                st.error('Chave "losses" não encontrada nos dados da resposta.')
-                return pd.DataFrame()
-        else:
-            st.error('Recebido JSON vazio ou sem chave "Response".')
-            return pd.DataFrame()
-    except requests.exceptions.HTTPError as http_err:
-        st.error(f'Erro HTTP ao recuperar dados de perdas: {http_err}')
-        return pd.DataFrame()
-    except Exception as err:
-        st.error(f'Erro ao recuperar dados de perdas: {err}')
-        return pd.DataFrame()
-
-
-def format_currency(value):
-    try:
-        return locale.currency(value, grouping=True)
-    except:
-        return value
-
-
-def update_loss_high(event_id, assets, loss_type, max_loss, min_loss, most_likely_loss, threat_event):
-    url = f'http://3.142.77.137:8080/api/update-losshigh/{event_id}'
-    payload = {
-        "assets": [assets],  # Enviar como lista
-        "loss_type": loss_type,
-        "maximum_loss": max_loss,
-        "minimum_loss": min_loss,
-        "most_likely_loss": most_likely_loss,
-        "threat_event": threat_event
-    }
-    headers = {'Content-Type': 'application/json'}
-    try:
-        response = requests.put(url, json=payload, headers=headers)
-        response.raise_for_status()
-        return response.json()
-    except requests.exceptions.HTTPError as http_err:
-        st.error(f'Erro HTTP ao atualizar dados de perdas: {http_err}')
-        return None
-    except Exception as err:
-        st.error(f'Erro ao atualizar dados de perdas: {err}')
-        return None
+from data.loss_high_service import get_loss_high, update_loss_high
 
 
 def run():
@@ -83,10 +24,6 @@ def run():
         'maximum_loss': 'Perda Máxima',
         'most_likely_loss': 'Perda Mais Provável'
     }, inplace=True)
-
-    loss_data['Perda Mínima'] = loss_data['Perda Mínima'].apply(format_currency)
-    loss_data['Perda Máxima'] = loss_data['Perda Máxima'].apply(format_currency)
-    loss_data['Perda Mais Provável'] = loss_data['Perda Mais Provável'].apply(format_currency)
 
     st.write("Selecione uma categoria para visualizar os ataques:")
 
