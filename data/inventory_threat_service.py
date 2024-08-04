@@ -6,7 +6,7 @@ from config.settings import BASE_API_URL
 
 
 def update_threat_event(event_id, affected_assets):
-    url = f'{BASE_API_URL}/event/{event_id}'
+    url = f'{BASE_API_URL}api/event/{event_id}'
     headers = {'Content-Type': 'application/json'}
     payload = {
         "affected_asset": affected_assets
@@ -16,7 +16,7 @@ def update_threat_event(event_id, affected_assets):
 
 
 def get_catalogues():
-    url = f'{BASE_API_URL}/all-catalogue'
+    url = f'{BASE_API_URL}api/all-catalogue'
     response = requests.get(url)
     if response.status_code == 200:
         json_response = response.json()
@@ -31,7 +31,7 @@ def get_catalogues():
 
 
 def get_assets():
-    url = f'{BASE_API_URL}/assets'
+    url = f'{BASE_API_URL}api/assets'
     response = requests.get(url)
     if response.status_code == 200:
         json_response = response.json()
@@ -45,7 +45,7 @@ def get_assets():
 
 
 def post_catalogue(data):
-    url = f'{BASE_API_URL}/catalogue'
+    url = f'{BASE_API_URL}api/catalogue'
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, headers=headers, json=data)
     return response

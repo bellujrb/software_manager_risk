@@ -1,22 +1,25 @@
 import streamlit as st
-import requests
 import numpy as np
 import plotly.graph_objects as go
 from scipy.stats import lognorm
-import pandas as pd
+
+from data.risk_analysis_service import get_catalogues, fetch_event_data, fetch_aggregated_data, fetch_appetite_data
 
 sims = 10000
 STDEV = 3.29
+
 
 def lognorminvpert(min_val, pert, max_val):
     mean = np.log(pert)
     sigma = (np.log(max_val) - np.log(min_val)) / STDEV
     return lognorm.ppf(np.random.rand(), s=sigma, scale=np.exp(mean))
 
+
 def lognorm_risk_pert(minfreq, pertfreq, maxfreq, minloss, pertloss, maxloss):
     freq = lognorminvpert(minfreq, pertfreq, maxfreq)
     loss = lognorminvpert(minloss, pertloss, maxloss)
     return freq * loss
+
 
 def generate_sim_data(rdata):
     sim_data = np.zeros(sims)
@@ -27,6 +30,7 @@ def generate_sim_data(rdata):
         )
     return sim_data
 
+
 def get_histogram_data(values, bins):
     values = np.array(values)
     if len(values) == 0 or np.any(np.isnan(values)):
@@ -35,68 +39,8 @@ def get_histogram_data(values, bins):
     freqs, edges = np.histogram(values, bins=bins)
     return freqs, edges
 
-def get_catalogues():
-    url = 'http://3.142.77.137:8080/api/all-catalogue'
-    response = requests.get(url)
-    if response.status_code == 200:
-        json_response = response.json()
-        if 'Response' in json_response and json_response['Response']:
-            df = pd.DataFrame(json_response['Response'])
-            return df.fillna("")
-        else:
-            st.error('Recebido JSON vazio ou sem chave \'Response\'.')
-    else:
-        st.error(f'Erro ao recuperar catálogos: {response.status_code}')
-    return pd.DataFrame()
-
-def fetch_event_data(event_name, loss_type):
-    url = f'http://3.142.77.137:8080/simulation'
-    headers = {
-        'Content-Type': 'application/json',
-        'ThreatEvent': event_name,
-        'Loss': loss_type
-    }
-    response = requests.get(url, headers=headers)
-    if response.status_code == 200:
-        json_data = response.json()
-        if json_data:
-            json_data['FrequencyMin'] = int(float(json_data['FrequencyMin']))
-            json_data['FrequencyEstimate'] = int(float(json_data['FrequencyEstimate']))
-            json_data['FrequencyMax'] = int(float(json_data['FrequencyMax']))
-            json_data['LossMin'] = int(float(json_data['LossMin']))
-            json_data['LossEstimate'] = int(float(json_data['LossEstimate']))
-            json_data['LossMax'] = int(float(json_data['LossMax']))
-        return json_data
-    else:
-        st.error('Falha ao recuperar dados do evento.')
-        return None
-
-def fetch_aggregated_data(loss_type):
-    headers = {
-        'Content-Type': 'application/json',
-        'Loss': loss_type
-    }
-    response = requests.get("http://3.142.77.137:8080/simulation-aggregated", headers=headers)
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Erro ao buscar dados agregados: {response.status_code}")
-        return None
-
-def fetch_appetite_data(loss_type):
-    url = "http://3.142.77.137:8080/simulation-appetite"
-    response = requests.get(url, headers={
-        'accept': 'application/json',
-        'Loss': loss_type
-    })
-    if response.status_code == 200:
-        return response.json()
-    else:
-        st.error(f"Erro ao buscar dados de apetite: {response.status_code}")
-        return None
 
 def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
-    # Corrigindo a interpretação dos percentuais de risco
     risks = [point['risk'] for point in appetite_data["LossExceedance"]]  # Corrigindo aqui
     losses = [point['loss'] / 1e6 for point in appetite_data["LossExceedance"]]
 
@@ -142,7 +86,6 @@ def plot_loss_exceedance_curve(appetite_data, monte_carlo_data):
         legend=dict(bgcolor='rgba(0,0,0,0)', bordercolor='black')
     )
     st.plotly_chart(fig)
-
 
 
 def run():
@@ -231,4 +174,5 @@ def run():
 
     else:
         st.error(
-            "Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da requisição.")
+            "Falha ao carregar catálogos de eventos. Por favor, verifique a conectividade da API ou os parâmetros da "
+            "requisição.")

@@ -6,7 +6,7 @@ from config.settings import BASE_API_URL
 
 
 def get_threat_events():
-    url = f"{BASE_API_URL}/all-event"
+    url = f"{BASE_API_URL}api/all-event"
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
@@ -27,7 +27,7 @@ def get_threat_events():
 
 
 def get_available_assets():
-    url = f"{BASE_API_URL}/assets"
+    url = f"{BASE_API_URL}api/assets"
     try:
         response = requests.get(url)
         response.raise_for_status()  # Raise an HTTPError for bad responses (4xx and 5xx)
@@ -46,7 +46,7 @@ def get_available_assets():
 
 
 def update_threat_event(threat_id, threat_event, affected_asset):
-    url = f"{BASE_API_URL}/event/{threat_id}"
+    url = f"{BASE_API_URL}api/event/{threat_id}"
     payload = {
         "threat_event": threat_event,
         "affected_asset": affected_asset

@@ -7,7 +7,7 @@ import json
 
 def load_assets():
     try:
-        response = requests.get(f'{BASE_API_URL}/assets')
+        response = requests.get(f'{BASE_API_URL}api/assets')
         response.raise_for_status()
         assets_data = response.json()['Response']
         df = pd.DataFrame.from_records(assets_data)
@@ -19,21 +19,21 @@ def load_assets():
 
 
 def post_asset(data):
-    url = f'{BASE_API_URL}/create-asset'
+    url = f'{BASE_API_URL}api/create-asset'
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, headers=headers, data=json.dumps(data))
     return response
 
 
 def update_asset(asset_id, data):
-    url = f'{BASE_API_URL}/asset/{asset_id}'
+    url = f'{BASE_API_URL}api/asset/{asset_id}'
     headers = {'Content-Type': 'application/json'}
     response = requests.put(url, headers=headers, data=json.dumps(data))
     return response
 
 
 def delete_asset(asset_id):
-    url = f'{BASE_API_URL}/asset/{asset_id}'
+    url = f'{BASE_API_URL}api/asset/{asset_id}'
     response = requests.delete(url)
     return response
 

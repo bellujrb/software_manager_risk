@@ -1,29 +1,12 @@
 import streamlit as st
 import pandas as pd
-import requests
-
-
-def get_threat_data():
-    response = requests.get("http://3.142.77.137:8080/api/all-frequency")
-    if response.status_code == 200:
-        return pd.DataFrame(response.json()["Response"])
-    else:
-        st.error("Falha ao obter dados de ameaças")
-        return pd.DataFrame()
-
-
-def update_threat_data(data, id):
-    response = requests.put(f"http://3.142.77.137:8080/api/frequency/{id}", json=data)
-    if response.status_code == 200:
-        st.success("Dados atualizados com sucesso")
-    else:
-        st.error("Falha ao atualizar dados")
+from data.frequency_service import get_threat_link_data, update_threat_link_data
 
 
 def run():
     st.subheader('Análise de frequência de eventos de ameaça')
 
-    threat_data = get_threat_data()
+    threat_data = get_threat_link_data()
 
     if not threat_data.empty:
         st.session_state.threat_data = threat_data
@@ -62,7 +45,7 @@ def run():
                         "support_information": supp_info,
                         "threat_event": row['Evento de ameaça']
                     }
-                    update_threat_data(update_data, str(row['ID do evento de ameaça']))
+                    update_threat_link_data(update_data, str(row['ID do evento de ameaça']))
 
         st.write("Registro de Frequências de Eventos de Ameaça:")
         st.dataframe(st.session_state.freq_data)
