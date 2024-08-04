@@ -140,4 +140,3 @@ def run():
                 if response:
                     st.success('Dados de perda atualizados com sucesso!')
                     st.session_state.loss_data = get_loss_high()
-

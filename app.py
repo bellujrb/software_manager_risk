@@ -1,22 +1,7 @@
 import streamlit as st
-
-import control_library
-import control_strength
-import granular
-import implementation
-import inventory_assets
-import loss_appoach
-import loss_high
-import proposed_strength
-import relevance
-import report
-import risk_calculation
-import link_threat
-import inventory_threat
-import frequency
-import risk_analysis
-import single_estimate
-import target
+from screens import (target, inventory_assets, inventory_threat, frequency, link_threat,
+                     loss_appoach, risk_calculation, single_estimate, loss_high, granular, risk_analysis, control_library, relevance,
+                     implementation, control_strength, proposed_strength, report)
 
 
 def main():
@@ -26,6 +11,8 @@ def main():
         st.session_state['loss_mode'] = 'default'
 
     st.sidebar.title("Navegação")
+    st.header('Seção Principal')
+    st.write('Conteúdo principal aqui.')
 
     pages = [
         ("Ambiente Alvo", target.run),
