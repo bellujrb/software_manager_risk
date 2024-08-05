@@ -38,5 +38,4 @@ def delete_asset(asset_id):
     return response
 
 
-def reload_assets():
-    st.session_state.data = load_assets()
+

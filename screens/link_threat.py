@@ -1,6 +1,4 @@
 import streamlit as st
-import pandas as pd
-import requests
 
 from data.link_threat_service import get_threat_events, get_available_assets, update_threat_event
 

@@ -11,8 +11,6 @@ def main():
         st.session_state['loss_mode'] = 'default'
 
     st.sidebar.title("Navegação")
-    st.header('Seção Principal')
-    st.write('Conteúdo principal aqui.')
 
     pages = [
         ("Ambiente Alvo", target.run),

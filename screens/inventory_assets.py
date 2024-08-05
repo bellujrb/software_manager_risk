@@ -1,7 +1,17 @@
 import streamlit as st
 
-from data.inventory_assets_service import reload_assets, post_asset, update_asset, delete_asset
+from data.inventory_assets_service import post_asset, update_asset, delete_asset, load_assets
 from utils.helpers import show_error, show_success
+
+import pandas as pd
+
+
+def reload_assets():
+    assets_data = load_assets()
+    if assets_data is None:
+        st.session_state.data = pd.DataFrame()
+    else:
+        st.session_state.data = pd.DataFrame.from_records(assets_data)
 
 
 def enter_asset_fields(asset=None):
