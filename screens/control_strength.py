@@ -2,15 +2,7 @@ import requests
 import pandas as pd
 import streamlit as st
 
-
-def fetch_data_from_api():
-    url = "http://3.142.77.137:8080/api/all-strength"
-    response = requests.get(url, headers={'accept': 'application/json'})
-    if response.status_code == 200:
-        return response.json()["Response"]
-    else:
-        st.error(f"Erro ao buscar dados da API: {response.status_code}")
-        return []
+from data.control_strength_service import fetch_data_from_api
 
 
 def display_combined_table(data):

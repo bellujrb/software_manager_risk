@@ -14,6 +14,10 @@ def run():
 
     df_relevance = pd.DataFrame(relevance_data['Response'])
 
+    # Remover duplicatas antes de fazer o pivot
+    df_relevance = df_relevance.drop_duplicates(subset=['controlId', 'type_of_attack'])
+
+    # Fazer o pivot
     df_pivot = df_relevance.pivot(index='controlId', columns='type_of_attack', values='porcent').fillna(0)
     df_pivot = df_pivot.reset_index()
 
@@ -21,7 +25,7 @@ def run():
     table_placeholder = st.empty()
     table_placeholder.dataframe(df_pivot)
     control_ids = df_pivot['controlId'].unique()
-    attack_types = df_pivot.columns[1:]  # Excluir 'controlId' da lista de ataques
+    attack_types = df_pivot.columns[1:]
 
     selected_control = st.selectbox("Selecione o Controle ID para editar:", control_ids)
     selected_attack = st.selectbox("Selecione o Tipo de Ataque para editar:", attack_types)

@@ -1,12 +1,11 @@
 import streamlit as st
-import pandas as pd
 import requests
 
 from config.settings import BASE_API_URL
 
 
 def get_relevance_data():
-    url = f'{BASE_API_URL}api/relevance'
+    url = f'{BASE_API_URL}api/revelance'
     response = requests.get(url)
     if response.status_code == 200:
         return response.json()
@@ -16,7 +15,7 @@ def get_relevance_data():
 
 
 def update_relevance_data(control_id, porcent, type_of_attack):
-    url = f'{BASE_API_URL}api/update-relevance'
+    url = f'{BASE_API_URL}api/update-revelance'
     payload = {
         "controlId": int(control_id),
         "porcent": int(porcent),

@@ -1,30 +1,7 @@
 import pandas as pd
 import streamlit as st
-import requests
 
-
-def fetch_control_implementation_data():
-    url = 'http://3.142.77.137:8080/api/all-implementation'
-    response = requests.get(url)
-    if response.status_code == 200:
-        data = response.json()["Response"]
-        return pd.DataFrame(data)
-    else:
-        st.error("Falha ao buscar dados de implementação de controle")
-        return pd.DataFrame(columns=[
-            'id', 'controlId', 'current', 'proposed', 'percentCurrent', 'percentProposed', 'cost'
-        ])
-
-
-def update_control_implementation(control_id, current, proposed, cost):
-    url = f'http://3.142.77.137:8080/api/implementation/{control_id}'
-    data = {
-        "current": int(current),
-        "proposed": int(proposed),
-        "cost": int(cost)
-    }
-    response = requests.put(url, json=data)
-    return response.status_code, response.json()
+from data.implementation_service import fetch_control_implementation_data, update_control_implementation
 
 
 def get_percent_value(implementation):
