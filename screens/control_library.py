@@ -34,6 +34,7 @@ def run():
 
         if submit_button:
             create_control(control_reference, control_type, in_scope, information)
+            st.rerun()
 
     elif action == 'Editar':
         st.header('Editar Controle Existente')

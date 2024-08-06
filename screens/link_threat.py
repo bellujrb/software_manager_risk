@@ -31,3 +31,4 @@ def run():
 
         if st.button("Atualizar Evento"):
             update_threat_event(threat_id, threat_event, new_affected_asset)
+            st.rerun()

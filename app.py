@@ -1,14 +1,27 @@
 import streamlit as st
 from screens import (target, inventory_assets, inventory_threat, frequency, link_threat,
-                     loss_appoach, risk_calculation, single_estimate, loss_high, granular, risk_analysis, control_library, relevance,
-                     implementation, control_strength, proposed_strength, report)
+                     loss_appoach, risk_calculation, single_estimate, loss_high, granular, risk_analysis,
+                     control_library, relevance,
+                     implementation, control_strength, proposed_strength, report
+                     )
 
 
 def main():
     st.title('Sistema de Gerenciamento de Eventos de Ameaça e Ativos')
 
+    st.write("""
+        Bem-vindo ao Sistema de Gerenciamento de Eventos de Ameaça e Ativos! Este sistema permite:
+        - Registrar eventos de ameaças potenciais.
+        - Analisar a frequência com que esses eventos podem ocorrer.
+        - Associar esses eventos a ativos específicos dentro da organização.
+        Utilize a barra lateral para navegar entre as diferentes funcionalidades do aplicativo.
+        """)
+
     if 'loss_mode' not in st.session_state:
         st.session_state['loss_mode'] = 'default'
+
+    if 'page' not in st.session_state:
+        st.session_state['page'] = "Ambiente Alvo"
 
     st.sidebar.title("Navegação")
 
@@ -40,9 +53,14 @@ def main():
 
     pages_dict = dict(pages)
 
-    selection = st.sidebar.radio("Ir para", list(pages_dict.keys()))
+    selection = st.sidebar.radio("Ir para", list(pages_dict.keys()),
+                                 index=list(pages_dict.keys()).index(st.session_state['page']))
 
-    page_function = pages_dict.get(selection)
+    if selection != st.session_state['page']:
+        st.session_state['page'] = selection
+        st.experimental_rerun()
+
+    page_function = pages_dict.get(st.session_state['page'])
     if page_function:
         page_function()
 

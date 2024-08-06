@@ -33,7 +33,6 @@ def get_single_estimate():
         return pd.DataFrame()
 
 
-# Função para atualizar perdas
 def update_single_estimate(event_id, max_loss, min_loss, most_likely_loss):
     url = f"{BASE_API_URL}api/update-losshigh-singular/{event_id}"
     payload = {

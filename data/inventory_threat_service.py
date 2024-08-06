@@ -49,3 +49,10 @@ def post_catalogue(data):
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, headers=headers, json=data)
     return response
+
+
+def delete_catalogue(catalogue_id):
+    url = f'{BASE_API_URL}api/catalogue/{catalogue_id}'
+    headers = {'Content-Type': 'application/json'}
+    response = requests.delete(url, headers=headers)
+    return response

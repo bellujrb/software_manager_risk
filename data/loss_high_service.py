@@ -10,7 +10,7 @@ def get_loss_high():
     url = f"{BASE_API_URL}api/losshigh"
     try:
         response = requests.get(url)
-        response.raise_for_status()  # Levanta uma exceção para respostas com erro (4xx e 5xx)
+        response.raise_for_status()
         json_response = response.json()
 
         if 'Response' in json_response and json_response['Response']:

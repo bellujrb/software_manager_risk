@@ -1,6 +1,24 @@
 import streamlit as st
-
 from data.loss_high_service import get_loss_high, update_loss_high
+
+
+def format_number(value):
+    try:
+        return f"{int(value):,}".replace(",", ".")
+    except ValueError:
+        return value
+
+
+def parse_number(value):
+    try:
+        return int(value.replace(".", "").replace(",", ""))
+    except ValueError:
+        return 0
+
+
+def update_number_input(label, key, value):
+    formatted_value = st.text_input(label, value=format_number(value), key=key)
+    return parse_number(formatted_value)
 
 
 def run():
@@ -48,24 +66,23 @@ def run():
                 min_loss = selected_loss['Perda Mínima'].iloc[0]
                 most_likely_loss = selected_loss['Perda Mais Provável'].iloc[0]
             else:
-                max_loss = 0.0
-                min_loss = 0.0
-                most_likely_loss = 0.0
+                max_loss = 0
+                min_loss = 0
+                most_likely_loss = 0
 
             st.text_input("Ativo(s)", value=assets, disabled=True, key=f'assets_{event}')
-            max_loss_input = st.number_input('Perda Máxima', min_value=0.0, value=float(max_loss),
-                                             key=f'max_loss_{event}')
-            min_loss_input = st.number_input('Perda Mínima', min_value=0.0, value=float(min_loss),
-                                             key=f'min_loss_{event}')
-            most_likely_loss_input = st.number_input('Perda Mais Provável', min_value=0.0,
-                                                     value=float(most_likely_loss), key=f'most_likely_loss_{event}')
+
+            max_loss_input = update_number_input('Perda Máxima', f'max_loss_{event}', max_loss)
+            min_loss_input = update_number_input('Perda Mínima', f'min_loss_{event}', min_loss)
+            most_likely_loss_input = update_number_input('Perda Mais Provável', f'most_likely_loss_{event}',
+                                                         most_likely_loss)
 
             update_button = st.button('Atualizar', key=f'update_button_{event}')
 
             if update_button:
                 st.write(f'Atualizando dados para o evento {threat_event_id}:')
                 st.write({
-                    "assets": [assets],  # Enviar como lista
+                    "assets": [assets],
                     "loss_type": loss_type,
                     "maximum_loss": max_loss_input,
                     "minimum_loss": min_loss_input,
@@ -77,3 +94,6 @@ def run():
                 if response:
                     st.success('Dados de perda atualizados com sucesso!')
                     st.session_state.loss_data = get_loss_high()
+                    st.rerun()
+                else:
+                    st.error("Falha ao atualizar as perdas.")

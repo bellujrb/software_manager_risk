@@ -21,7 +21,7 @@ def get_catalogues():
 
 
 def fetch_event_data(event_name, loss_type):
-    url = f"{BASE_API_URL}/"
+    url = f"{BASE_API_URL}/simulation"
     headers = {
         'Content-Type': 'application/json',
         'ThreatEvent': event_name,
