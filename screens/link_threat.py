@@ -1,7 +1,5 @@
 import streamlit as st
-
 from data.link_threat_service import get_threat_events, get_available_assets, update_threat_event
-
 
 def run():
     st.title('Vinculação de ativos de eventos de ameaça')
@@ -11,24 +9,31 @@ def run():
 
     if threat_data.empty:
         st.error('Nenhum dado de evento de ameaça disponível.')
-    else:
-        st.write("Eventos de ameaça:")
-        st.dataframe(threat_data[['threat_id', 'threat_event', 'affected_asset']])
+        return
 
-        st.write("Atualizar Evento de Ameaça")
+    st.write("Eventos de ameaça:")
+    st.dataframe(threat_data[['threat_id', 'threat_event', 'affected_asset']])
 
-        # Select box for threat_id
-        threat_id = st.selectbox("Threat Event ID", threat_data['threat_id'])
+    st.write("Atualizar Evento de Ameaça")
 
-        # Automatically fill threat_event based on selected threat_id
-        selected_event = threat_data[threat_data['threat_id'] == threat_id].iloc[0]
-        threat_event = selected_event['threat_event']
-        affected_asset = [asset.strip() for asset in selected_event['affected_asset'].split(', ') if
-                          asset.strip() in available_assets]
+    # Initialize session state for selected threat_id
+    if 'selected_threat_id' not in st.session_state:
+        st.session_state.selected_threat_id = threat_data['threat_id'].iloc[0]
 
-        st.text_input("Threat Event", value=threat_event, disabled=True)
-        new_affected_asset = st.multiselect("Affected Asset", options=available_assets, default=affected_asset)
+    # Select box for threat_id
+    threat_id = st.selectbox("Threat Event ID", threat_data['threat_id'], index=threat_data['threat_id'].tolist().index(st.session_state.selected_threat_id))
+    st.session_state.selected_threat_id = threat_id
 
-        if st.button("Atualizar Evento"):
-            update_threat_event(threat_id, threat_event, new_affected_asset)
-            st.rerun()
+    # Automatically fill threat_event based on selected threat_id
+    selected_event = threat_data[threat_data['threat_id'] == threat_id].iloc[0]
+    threat_event = selected_event['threat_event']
+    affected_asset = [asset.strip() for asset in selected_event['affected_asset'].split(', ') if asset.strip() in available_assets]
+
+    st.text_input("Threat Event", value=threat_event, disabled=True)
+    new_affected_asset = st.multiselect("Affected Asset", options=available_assets, default=affected_asset)
+
+    if st.button("Atualizar Evento"):
+        update_threat_event(threat_id, threat_event, new_affected_asset)
+        st.success("Evento atualizado com sucesso!")
+        st.rerun()
+
