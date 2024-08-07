@@ -1,6 +1,6 @@
 import streamlit as st
 
-from data.control_library_service import get_control_data, create_control
+from data.control_library_service import get_control_data, create_control, update_control
 
 
 def run():
@@ -15,7 +15,8 @@ def run():
         'ID': 'ID do Controle',
         'ControlType': 'Tipo de Controle',
         'ControlReference': 'Referência do Controle',
-        'Information': 'Informação'
+        'Information': 'Informação',
+        'InScope': 'In Scope'
     }, inplace=True)
 
     st.write("Controles Registrados:")
@@ -34,14 +35,11 @@ def run():
 
         if submit_button:
             create_control(control_reference, control_type, in_scope, information)
-            st.rerun()
 
     elif action == 'Editar':
         st.header('Editar Controle Existente')
-
         control_id = st.selectbox('Selecione o Controle para Editar', df['ID do Controle'].unique())
         selected_control = df[df['ID do Controle'] == control_id].iloc[0]
-
         with st.form(key='edit_control_form'):
             control_reference = st.text_input('Referência do Controle',
                                               value=selected_control['Referência do Controle'])
@@ -51,11 +49,18 @@ def run():
             submit_button = st.form_submit_button(label='Atualizar Controle')
 
         if submit_button:
-            pass
+            update_control(control_id, control_reference, control_type, in_scope, information)
 
     elif action == 'Deletar':
         st.header('Deletar Controle Existente')
 
         control_id = st.selectbox('Selecione o Controle para Deletar', df['ID do Controle'].unique())
+        delete_button = st.button(label='Deletar Controle')
+
+        if delete_button:
+            # Delete o controle aqui
+            pass
 
 
+if __name__ == "__main__":
+    run()

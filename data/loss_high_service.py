@@ -37,7 +37,6 @@ def get_loss_high():
 def update_loss_high(event_id, assets, loss_type, max_loss, min_loss, most_likely_loss, threat_event):
     url = f"{BASE_API_URL}api/update-losshigh/{event_id}"
     payload = {
-        "assets": [assets],  # Enviar como lista
         "loss_type": loss_type,
         "maximum_loss": max_loss,
         "minimum_loss": min_loss,
