@@ -10,6 +10,19 @@ def reload_assets():
         st.session_state.data = pd.DataFrame()
     else:
         st.session_state.data = pd.DataFrame.from_records(assets_data)
+        st.session_state.data.rename(columns={
+            'name': 'Nome',
+            'description': 'Descrição',
+            'location': 'Local',
+            'responsible': 'Responsável',
+            'business_value': 'Valor para o negócio (R$)',
+            'replacement_cost': 'Custo de reposição (R$)',
+            'criticality': 'Criticidade',
+            'users': 'Usuários',
+            'roleInTargetEnvironment': 'Ambiente Alvo'
+        }, inplace=True)
+        st.session_state.data['Valor para o negócio (R$)'] = st.session_state.data['Valor para o negócio (R$)'].apply(lambda x: f"R$ {x:,.2f}")
+        st.session_state.data['Custo de reposição (R$)'] = st.session_state.data['Custo de reposição (R$)'].apply(lambda x: f"R$ {x:,.2f}")
 
 
 def enter_asset_fields(asset=None):
@@ -26,10 +39,10 @@ def enter_asset_fields(asset=None):
         'responsible': st.text_input("Responsável", value=asset['responsible'] if asset is not None else ''),
         'business_value': st.number_input("Valor para o negócio (R$)",
                                           value=float(asset['business_value']) if asset is not None else 0.0,
-                                          format='%f'),
+                                          format='%.2f'),
         'replacement_cost': st.number_input("Custo de reposição (R$)",
                                             value=float(asset['replacement_cost']) if asset is not None else 0.0,
-                                            format='%f'),
+                                            format='%.2f'),
         'criticality': st.selectbox("Criticidade", criticality_options, index=criticality_index),
         'users': st.text_input("Usuários", value=asset['users'] if asset is not None else ''),
         'roleInTargetEnvironment': st.text_input("Ambiente Alvo",
@@ -83,3 +96,5 @@ def run():
                 show_success("Asset excluído com sucesso!")
             else:
                 show_error(f"Falha ao excluir o asset: {response.status_code} - {response.text}")
+
+

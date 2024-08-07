@@ -1,6 +1,14 @@
 import streamlit as st
 from data.granular_service import get_granular
 
+
+def format_number(value):
+    try:
+        return f"R$ {int(value):,}".replace(",", ".")
+    except ValueError:
+        return value
+
+
 def run():
     st.title('Granular')
 
@@ -20,6 +28,10 @@ def run():
         'MaximumLoss': 'Perda Máxima',
         'MostLikelyLoss': 'Perda Mais Provável'
     }, inplace=True)
+
+    loss_data['Perda Mínima'] = loss_data['Perda Mínima'].apply(format_number)
+    loss_data['Perda Máxima'] = loss_data['Perda Máxima'].apply(format_number)
+    loss_data['Perda Mais Provável'] = loss_data['Perda Mais Provável'].apply(format_number)
 
     st.write("Selecione uma categoria para visualizar os ataques:")
 

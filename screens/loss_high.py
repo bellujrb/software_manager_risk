@@ -4,14 +4,14 @@ from data.loss_high_service import get_loss_high, update_loss_high
 
 def format_number(value):
     try:
-        return f"{int(value):,}".replace(",", ".")
+        return f"R$ {int(value):,}".replace(",", ".")
     except ValueError:
         return value
 
 
 def parse_number(value):
     try:
-        return int(value.replace(".", "").replace(",", ""))
+        return int(value.replace("R$ ", "").replace(".", "").replace(",", ""))
     except ValueError:
         return 0
 
@@ -43,6 +43,10 @@ def run():
         'most_likely_loss': 'Perda Mais Provável'
     }, inplace=True)
 
+    loss_data['Perda Mínima'] = loss_data['Perda Mínima'].apply(format_number)
+    loss_data['Perda Máxima'] = loss_data['Perda Máxima'].apply(format_number)
+    loss_data['Perda Mais Provável'] = loss_data['Perda Mais Provável'].apply(format_number)
+
     st.write("Selecione uma categoria para visualizar os ataques:")
 
     unique_events = loss_data['Evento de Ameaça'].unique()
@@ -62,9 +66,9 @@ def run():
             selected_loss = event_df[event_df['Tipo de Perda'] == loss_type]
 
             if not selected_loss.empty:
-                max_loss = selected_loss['Perda Máxima'].iloc[0]
-                min_loss = selected_loss['Perda Mínima'].iloc[0]
-                most_likely_loss = selected_loss['Perda Mais Provável'].iloc[0]
+                max_loss = parse_number(selected_loss['Perda Máxima'].iloc[0])
+                min_loss = parse_number(selected_loss['Perda Mínima'].iloc[0])
+                most_likely_loss = parse_number(selected_loss['Perda Mais Provável'].iloc[0])
             else:
                 max_loss = 0
                 min_loss = 0
