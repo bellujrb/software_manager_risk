@@ -135,7 +135,7 @@ def run():
 
     if chart_type == "KDE Plot Agregado":
         if st.button("Gerar Dados"):
-            aggregated_data = fetch_aggregated_data(loss_type="Granular")
+            aggregated_data = fetch_aggregated_data(loss_type="Singular")
             if aggregated_data:
                 rdata = {
                     'FrequencyMin': float(aggregated_data['FrequencyMin']),
@@ -157,7 +157,7 @@ def run():
                 plot_simulation_lines(sim_results, residual_risk, "KDE Plot Agregado")
 
     elif chart_type == "Curva de Excedência de Perda":
-        appetite_data = fetch_appetite_data(loss_type="Granular")
+        appetite_data = fetch_appetite_data(loss_type="Singular")
         if appetite_data and "LossExceedance" in appetite_data:
             rdata = {
                 'FrequencyMin': appetite_data['FrequencyMin'],
@@ -184,7 +184,7 @@ def run():
         selected_event = st.selectbox("Selecione o Evento de Ameaça", options=events)
 
         if st.button("Carregar Dados do Evento e Simular Riscos"):
-            event_data = fetch_event_data(selected_event, loss_type="Granular")
+            event_data = fetch_event_data(selected_event, loss_type="Singular")
             if event_data:
                 rdata1 = {
                     'FrequencyMin': float(event_data['FrequencyMin']),
